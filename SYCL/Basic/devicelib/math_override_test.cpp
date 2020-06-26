@@ -1,7 +1,8 @@
 // UNSUPPORTED: windows
 // RUN: %clangxx -fsycl -c %s -o %t.o
 // RUN: %clangxx -fsycl %t.o %sycl_libs_dir/libsycl-cmath.o -o %t.out
-// RUN: env SYCL_DEVICE_TYPE=HOST %t.out
+// RUN: %HOST_RUN_PLACEHOLDER %t.out
+// REQUIRES: host
 #include <CL/sycl.hpp>
 #include <iostream>
 #include <math.h>

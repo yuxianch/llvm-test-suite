@@ -35,12 +35,14 @@ config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.sycl_obj_root, 'test')
 
 # Propagate some variables from the host environment.
-llvm_config.with_system_environment(['PATH', 'OCL_ICD_FILENAME', 'SYCL_DEVICE_ALLOWLIST', 'SYCL_CONFIG_FILE_NAME'])
+llvm_config.with_system_environment(['PATH', 'OCL_ICD_FILENAMES',
+    'CL_CONFIG_DEVICES', 'SYCL_DEVICE_ALLOWLIST', 'SYCL_CONFIG_FILE_NAME'])
 
 config.substitutions.append( ('%clang_cc1', ' ' +  config.dpcpp_compiler + ' -cc1 ') )
 config.substitutions.append( ('%clangxx', ' ' + config.dpcpp_compiler) )
 config.substitutions.append( ('%clang_cl', ' ' + config.dpcpp_compiler) )
 config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler) )
+config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
 
 llvm_config.with_environment('PATH', config.lit_tools_dir, append_path=True)
 
@@ -76,7 +78,7 @@ llvm_config.use_clang()
 llvm_config.add_tool_substitutions(['llvm-spirv'], [config.sycl_tools_dir])
 
 if not config.sycl_be:
-    config.sycl_be='PI_OPENCL'
+    config.sycl_be="PI_OPENCL"
 
 config.substitutions.append( ('%sycl_be', config.sycl_be) )
 lit_config.note("Backend: {BACKEND}".format(BACKEND=config.sycl_be))
@@ -85,21 +87,51 @@ if config.dump_ir_supported:
    config.available_features.add('dump_ir')
 
 cuda = False
-if ( config.sycl_be == "PI_OPENCL" and (
-        'cpu' in config.target_devices.split(',') or
-        'gpu' in config.target_devices.split(',') or
-        'acc' in config.target_devices.split(','))):
+if ( config.sycl_be == "PI_OPENCL" ):
     config.available_features.add('opencl')
 elif ( config.sycl_be == "PI_CUDA" ):
     config.available_features.add('cuda')
     cuda = True
 elif ( config.sycl_be == "PI_LEVEL0" ):
     config.available_features.add('level0')
+else:
+    lit_config.error("Unknown SYCL BE specified '" +
+                     config.sycl_be +
+                     "' supported values are PI_OPENCL, PI_CUDA, PI_LEVEL0")
 
 # Configure device-specific substitutions based on availability of corresponding
 # devices/runtimes
 
 found_at_least_one_device = False
+
+host_run_substitute = "true"
+host_run_on_linux_substitute = "true "
+host_check_substitute = ""
+host_check_on_linux_substitute = ""
+supported_device_types=['cpu', 'gpu', 'acc', 'host']
+
+for target_device in config.target_devices.split(','):
+    if ( target_device not in supported_device_types ):
+        lit_config.error("Unknown SYCL target device type specified '" +
+                         target_device +
+                         "' supported devices are " + ', '.join(supported_device_types))
+
+if 'host' in config.target_devices.split(','):
+    found_at_least_one_device = True
+    lit_config.note("Test HOST device")
+    host_run_substitute = "env SYCL_DEVICE_TYPE=HOST SYCL_BE={SYCL_BE} ".format(SYCL_BE=config.sycl_be)
+    host_check_substitute = "| FileCheck %s"
+    config.available_features.add('host')
+    if platform.system() == "Linux":
+        host_run_on_linux_substitute = "env SYCL_DEVICE_TYPE=HOST SYCL_BE={SYCL_BE} ".format(SYCL_BE=config.sycl_be)
+        host_check_on_linux_substitute = "| FileCheck %s"
+else:
+    lit_config.warning("HOST device not used")
+
+config.substitutions.append( ('%HOST_RUN_PLACEHOLDER',  host_run_substitute) )
+config.substitutions.append( ('%HOST_RUN_ON_LINUX_PLACEHOLDER',  host_run_on_linux_substitute) )
+config.substitutions.append( ('%HOST_CHECK_PLACEHOLDER',  host_check_substitute) )
+config.substitutions.append( ('%HOST_CHECK_ON_LINUX_PLACEHOLDER',  host_check_on_linux_substitute) )
 
 cpu_run_substitute = "true"
 cpu_run_on_linux_substitute = "true "

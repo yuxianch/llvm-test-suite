@@ -23,6 +23,8 @@ llvm-lit .
 llvm-lit . --show-tests
 # Run specific test
 llvm-lit <path_to_test>
+# Run tests with parameters
+llvm-lit --param target_devices=host,gpu --param sycl_be=PI_LEVEL0 --param dpcpp_compiler=path/to/clang++ --param dump_ir=True .
 ```
 
 Notes:
@@ -31,7 +33,7 @@ Notes:
    - [dpcpp.cmake](../../cmake/caches/dpcpp.cmake)
    - [clang_fsycl.cmake](../../cmake/cashes/clang_fsycl.cmake)
    - [clang_fsycl_cuda.cmake](../../cmake/cashes/clang_fsycl_cuda.cmake)
- - compiler is taken 
+ - compiler is taken from environment.
 
 # Main parameters
 It is possible to change tets scope my specifying test directory/file in first
@@ -80,6 +82,12 @@ cmake -G Ninja  -DTEST_SUITE_COLLECT_CODE_SIZE=OFF  -DTEST_SUITE_COLLECT_COMPILE
 ```
 cmake -G Ninja  -DTEST_SUITE_COLLECT_CODE_SIZE=OFF  -DTEST_SUITE_COLLECT_COMPILE_TIME=OFF -DTEST_SUITE_SUBDIRS=SYCL  -DTEST_SUITE_LIT=<PATH_TO_llvm-lit> -DSYCL_BE=PI_LEVEL0 -DSYCL_TARGET_DEVICES="gpu" -C../cmake/caches/clang_fsycl.cmake  ..
 ```
+
+# LIT parameters can be passed to LIT executor:
+ - **dpcpp_compiler** - full path to dpcpp compiler;
+ - **target_device** - comma separated list of target devices (cpu, gpu, acc, host);
+ - **sycl_be** - SYCL backedn to be used (PI_OPENCL, PI_LEVEL, PI_CUDA);
+ - **dump_ir** - if IR dumping is supported for compiler (True, False).
 
 # LIT features which can be used to configure test execution:
  - **windows**, **linux** - host OS;

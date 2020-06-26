@@ -1,6 +1,6 @@
 SYCL-related tests directory.
 
- - Basic - tests used for sunnity testing. Building, executing and checks are defined using insource comments with LIT syntax.
+ - Basic - tests used for sanity testing. Building, executing and checks are defined using insource comments with LIT syntax.
  - External - contains infrastructure for running tests which sources are stored outside of this repository
  - MultiSource - SYCL related tests which depend on multiple source file.
  - SingleSource - SYCL tests with single source file.
