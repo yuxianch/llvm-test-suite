@@ -38,10 +38,6 @@ config.test_exec_root = config.sycl_obj_root
 llvm_config.with_system_environment(['PATH', 'OCL_ICD_FILENAMES',
     'CL_CONFIG_DEVICES', 'SYCL_DEVICE_ALLOWLIST', 'SYCL_CONFIG_FILE_NAME'])
 
-config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags ) )
-config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags ) )
-config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
-
 llvm_config.with_environment('PATH', config.lit_tools_dir, append_path=True)
 
 # Configure LD_LIBRARY_PATH or corresponding os-specific alternatives
@@ -73,7 +69,9 @@ for env_pair in config.extra_environment.split(','):
 
 config.substitutions.append( ('%sycl_libs_dir',  config.sycl_libs_dir ) )
 config.substitutions.append( ('%sycl_include',  config.sycl_include ) )
-config.substitutions.append( ('%opencl_libs_dir',  config.opencl_libs_dir) )
+if config.opencl_libs_dir:
+  config.substitutions.append( ('%opencl_libs_dir',  config.opencl_libs_dir) )
+  config.available_features.add('opencl_icd')
 config.substitutions.append( ('%opencl_include_dir',  config.opencl_include_dir) )
 
 llvm_config.use_clang()
@@ -101,6 +99,20 @@ else:
     lit_config.error("Unknown SYCL BE specified '" +
                      config.sycl_be +
                      "' supported values are PI_OPENCL, PI_CUDA, PI_LEVEL_ZERO")
+
+# ESIMD-specific setup. Requires OpenCL for now.
+if "opencl" in config.available_features:
+    print(config.available_features)
+    esimd_run_substitute = " env SYCL_BE=PI_OPENCL SYCL_DEVICE_TYPE=GPU SYCL_PROGRAM_COMPILE_OPTIONS=-vc-codegen"
+    config.substitutions.append( ('%ESIMD_RUN_PLACEHOLDER',  esimd_run_substitute) )
+    config.substitutions.append( ('%clangxx-esimd',  config.dpcpp_compiler +
+                                  ' ' + '-fsycl-explicit-simd' + ' ' +
+                                  config.cxx_flags ) )
+
+config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags ) )
+config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags ) )
+config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
+
 
 # Configure device-specific substitutions based on availability of corresponding
 # devices/runtimes
@@ -158,6 +170,7 @@ config.substitutions.append( ('%CPU_RUN_ON_LINUX_PLACEHOLDER',  cpu_run_on_linux
 config.substitutions.append( ('%CPU_CHECK_PLACEHOLDER',  cpu_check_substitute) )
 config.substitutions.append( ('%CPU_CHECK_ON_LINUX_PLACEHOLDER',  cpu_check_on_linux_substitute) )
 
+esimd_run_substitute = "true"
 gpu_run_substitute = "true"
 gpu_run_on_linux_substitute = "true "
 gpu_check_substitute = ""
@@ -173,6 +186,7 @@ if 'gpu' in config.target_devices.split(','):
     if platform.system() == "Linux":
         gpu_run_on_linux_substitute = "env SYCL_DEVICE_TYPE=GPU SYCL_BE={SYCL_BE} ".format(SYCL_BE=config.sycl_be)
         gpu_check_on_linux_substitute = "| FileCheck %s"
+
 else:
     lit_config.warning("GPU device not used")
 
