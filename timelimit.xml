@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<suites>
+	<suite suiteName="llvm_test_suite" testTimeLimit="3600" suiteTimeLimit="3600" />
+</suites>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<test name="TEMPLATE" driverID="llvm_test_suite">
+  <description>This config file is used for several tests.
+It must have a non-empty 'decription' field
+and name='TEMPLATE'. </description>
+  <rules>
+    <platformRule architecture="ia32" runOnThisPlatform="false" />
+  </rules>
+</test>

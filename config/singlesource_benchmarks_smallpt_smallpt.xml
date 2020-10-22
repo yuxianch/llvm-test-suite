@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<test name="singlesource_benchmarks_smallpt_smallpt" driverID="llvm_test_suite">
+  <description>This config file is used for several tests.
+It must have a non-empty 'decription' field
+and name='TEMPLATE'. </description>
+  <rules>
+    <advancedRule compiler=".*_clang.*" compilerOptionsCpp="-std=c++98" />
+  </rules>
+</test>

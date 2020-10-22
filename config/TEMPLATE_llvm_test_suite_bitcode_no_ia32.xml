@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<test name="TEMPLATE" driverID="llvm_test_suite">
+  <description>This config file is used for several tests.
+a separate config file for the llvm bitcode tests,
+only xmain and clang compilers understand it.</description>
+  <rules>
+    <platformRule architecture="ia32" runOnThisPlatform="false" />
+    <platformRule compiler=".*clang.*" runOnThisPlatform="true" />
+    <platformRule compiler=".*xmain.*" runOnThisPlatform="true" />
+    <platformRule compiler=".*icx.*" runOnThisPlatform="true" />
+  </rules>
+</test>

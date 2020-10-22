@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testDrivers>
+  <testDriver driverID="llvm_test_suite" file="llvm_test_suite.pl" title="Driver for llvm_test_suite suite">
+  </testDriver>
+</testDrivers>
