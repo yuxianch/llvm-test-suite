@@ -2,4 +2,5 @@
 
 <suites>
 	<suite suiteName="llvm_test_suite" testTimeLimit="3600" suiteTimeLimit="3600" />
+	<suite suiteName="llvm_test_suite_sycl" testTimeLimit="1200" suiteTimeLimit="1800" />
 </suites>
