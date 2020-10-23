@@ -16,23 +16,22 @@ local $Data::Dumper::Sortkeys = 1;
 local $Data::Dumper::Terse = 1;
 local $Data::Dumper::Indent = 1;
 
-my $cmake = "/rdrive/ics/itools/pkgtools/cmake/v_3_4_3/efi2_rhxx/bin/cmake";
-$cmake = "cmake";
-
 my $command_status = 0;
 my $command_output = "";
 
-my $test_suite_repo = "/export/users/$ENV{USER}/llvm-test-suite-sycl.orig";
+my $test_suite_repo = '.';
 my $test_suite_repo_rev = '';
 my $test_suite_repo_date = '';
+my $testbase = "/rdrive/tests/mainline/CT-SpecialTests/llvm-test-suite";
 
-my $sycl_dir = "$test_suite_repo/SYCL";
+my $sycl_dir = '';
 
 sub main
 {
     $test_suite_repo = File::Spec->rel2abs($test_suite_repo);
+    $sycl_dir = "$test_suite_repo/SYCL";
 
-    prepare_src();
+    check_src();
 
     execute("cd $sycl_dir && find -iname '*.cpp' | grep -vw 'Inputs'");
     my @list = split( "\n", $command_output);
@@ -68,9 +67,9 @@ sub main
     print scalar keys %{ $tests};
 }
 
-sub prepare_src
+sub check_src
 {
-    execute( "cd $sycl_dir && git log -1 ./ && cd - > /dev/null");
+    execute( "cd $sycl_dir && git log -1 ./");
 
     if ( $command_output =~ m/commit (.*)/)
     {
@@ -80,13 +79,6 @@ sub prepare_src
     {
         $test_suite_repo_date = $1;
     }
-
-    execute( "rm -rf ./llvm-test-suite-sycl ; cp -rf $test_suite_repo ./llvm-test-suite-sycl ");
-    $test_suite_repo = "./llvm-test-suite-sycl";
-    $test_suite_repo = File::Spec->rel2abs($test_suite_repo);
-    $sycl_dir = "$test_suite_repo/SYCL";
-
-    execute( "cd $test_suite_repo && find -type d -name '.git' -exec rm -rf {} \\;");
 }
 
 sub gen_suite
@@ -102,25 +94,30 @@ sub gen_suite
     $xml->{description} = { content => $descr};
     $xml->{files}       = { file => [ { path => 'cmake'}, { path => 'tools'}, { path => 'CMakeLists.txt'}, { path => 'litsupport'}, { path => 'lit.cfg'}, { path => 'lit.site.cfg.in'}, { path => 'SYCL'}, { path => '$INFO_TDRIVE/ref/lit'}, { path => 'config_sycl'}]};
 
-    my $pre_xml_file = "/rdrive/tests/mainline/CT-SpecialTests/llvm-test-suite/llvm_test_suite_sycl.xml";
-    open my $fh, '<', $pre_xml_file or die "Could not open '$pre_xml_file'!\n";
     my @strings = ();
-    while (my $line = <$fh>) {
-        chomp $line;
-        push(@strings, $line)
+    my $pre_xml_file = "${testbase}/llvm_test_suite_sycl.xml";
+    if ( -e $pre_xml_file ) {
+        open my $fh, '<', $pre_xml_file or die "Could not open '$pre_xml_file'!\n";
+        while (my $line = <$fh>) {
+            chomp $line;
+            push(@strings, $line)
+        }
     }
 
     foreach my $testname ( sort keys %{ $tests})
     {
         my @pre_xml = ();
-        @pre_xml = grep /testName="$testname"/, @strings;
         my $pre_xml_name = "";
+
+        if ( @strings != 0 ) {
+            @pre_xml = grep /testName="$testname"/, @strings;
+        }
         if (@pre_xml != 0 and $pre_xml[0] =~ m/configFile="([^\s]*\.xml)"/) {
             $pre_xml_name = $1;
             push @{ $xml->{tests}{test}}, { configFile => "$pre_xml_name", testName => $testname};
             my $pre_xml_file = basename($pre_xml_name);
             if (! -f "$pre_xml_file") {
-                copy("/rdrive/tests/mainline/CT-SpecialTests/llvm-test-suite/$pre_xml_name", "./config_sycl/") or die "copy failed: $!";
+                copy("${testbase}/$pre_xml_name", "./config_sycl/") or die "copy failed: $!";
             }
         } else {
             push @{ $xml->{tests}{test}}, { configFile => "config_sycl/TEMPLATE_llvm_test_suite_sycl.xml", testName => $testname};
