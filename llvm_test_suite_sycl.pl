@@ -67,13 +67,13 @@ sub do_run
       if (! -e $run_all_lf) {
         set_tool_path();
         chdir_log($build_dir);
-        execute("python3 $lit -a --timeout=1200 . > $run_all_lf 2>&1");
+        execute("python3 $lit -a . > $run_all_lf 2>&1");
         chdir_log($optset_work_dir);
       }
     } else {
       set_tool_path();
       chdir_log($build_dir);
-      execute("python3 $lit -a --timeout=1200 $path");
+      execute("python3 $lit -a $path");
     }
 
     $execution_output = "$command_output";
@@ -119,6 +119,10 @@ sub generate_run_result
         } elsif ($result =~ m/^XPASS/) {
           # Unexpected PASS
           $failure_message = "Unexpected pass";
+          return $RUNFAIL;
+        } elsif ($result =~ m/^TIMEOUT/) {
+          # Exceed test time limit
+          $failure_message = "Reached timeout";
           return $RUNFAIL;
         } elsif ($result =~ m/^FAIL/) {
           # Unexpected FAIL
