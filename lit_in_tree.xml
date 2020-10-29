@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<suite driverID="dynamic_lit">
+  <description>This suite is for GPU in-tree lit-tests.
+  </description>
+  <rules>
+  </rules>
+  <files>
+    <file path="cmake" />
+    <file path="tools" />
+    <file path="CMakeLists.txt" />
+    <file path="litsupport" />
+    <file path="lit.cfg" />
+    <file path="lit.site.cfg.in" />
+    <file path="SYCL" />
+    <file path="$INFO_TDRIVE/ref/lit" />
+    <file path="config_sycl" />
+  </files>
+</suite>
