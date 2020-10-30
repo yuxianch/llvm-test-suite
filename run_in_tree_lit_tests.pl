@@ -1,5 +1,4 @@
 use ics_subs;
-#use Cwd qw(cwd);
 
 my $cmake_log = "$optset_work_dir/cmake.log";
 my $ninja_log = "$optset_work_dir/ninja.log";
@@ -37,17 +36,18 @@ sub getSrc
       return BADTEST if ! $ics_proj or
                         ! $ics_ver  or
                         ! $mirror;
-    
+
       my ($llvm) = grep { $_->{DEST} eq "llvm" } get_project_chunks($ics_proj, $ics_ver);
-    
+
       return BADTEST if ! defined $llvm or
                         ! $llvm->{REPO} or
                         ! $llvm->{REV};
-    
+
       rmtree("llvm");
-      execute("git clone --shared $mirror/$llvm->{REPO} llvm && git -C llvm checkout $llvm->{REV}");
+      my $shared_opt = is_windows() ? "" : "--shared";
+      execute("git clone -n $shared_opt $mirror/$llvm->{REPO} llvm && cd llvm && git checkout $llvm->{REV}");
       return BADTEST if $command_status;
-    
+
       $test_src = getcwd()."/llvm/sycl/test";
     }
 }
@@ -57,7 +57,7 @@ sub getList
     # for separate build and test sessions it'd be better to store
     # build phase results in some file and then reread the data
     my @list = sort keys %data;
-  
+
     if (! @list) {
       # test name cannot include '/' or '\', so replace '/' with '~'
       @list = map { s/.*test\///; s/~/~~/g; s/\//~/g; $_ } alloy_find($test_src, '.*\.cpp|.*\.c');
@@ -65,7 +65,7 @@ sub getList
       my @indexToKeep = grep { $list[$_] !~ /\bInputs\b/ } 0..$#list;
       @list = @list[@indexToKeep];
     }
-  
+
     return @list;
 }
 
@@ -245,17 +245,17 @@ sub run_cmake
 sub run_build
 {
     my $res;
-  
+
     # run cmake
     run_cmake();
     if (($res = $command_status) != PASS) {
       return $res;
     }
-  
+
     # run ninja to copy files to SYCL/ExtraTests/tests folder
     execute( "ninja ExtraTests |& tee $ninja_log");
     $build_output .= $command_output;
-  
+
     my $test_full_path = "$optset_work_dir/SYCL/ExtraTests/tests/" . getTestPath();
     if (! -d $test_full_path and ! -f $test_full_path) {
       $build_output .= "\n$test_full_path not exist!\n";
@@ -271,7 +271,7 @@ sub run_build
       copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$optset_work_dir/SYCL/ExtraTests/") or die "Copy failed: $!";
       copy("$optset_work_dir/SYCL/lit.cfg.py", "$optset_work_dir/SYCL/ExtraTests/") or die "Copy failed: $!";
     }
-  
+
     return $res;
 }
 
@@ -280,9 +280,9 @@ sub BuildSuite
     if (getSrc() eq BADTEST) {
       return BADTEST;
     }
-  
+
     my @list = getList(@_);
-  
+
     my $ret = $COMPFAIL;
     $build_output = "";
     $current_test = "";
@@ -306,7 +306,7 @@ sub BuildTest
     if (getSrc() eq BADTEST) {
       return BADTEST;
     }
-  
+
     $build_output = "";
     my $ret = $COMPFAIL;
     my $res = run_build();
@@ -317,7 +317,7 @@ sub BuildTest
       $failure_message = "cmake/ninja return non zero";
     }
     $compiler_output = $build_output || "check cmake or ninja log files\n";
-  
+
     return $ret;
 }
 
@@ -325,7 +325,7 @@ sub RunSuite
 {
     my $ret = PASS;
     my @list = getList(@_);
-  
+
     foreach my $tst (@list) {
       $current_test = $tst;
       my $res = $data{$tst}{res};
@@ -334,7 +334,7 @@ sub RunSuite
         $res = BADTEST;
         $msg = "no data";
       }
-  
+
       if ($res == PASS) {
         $execution_output = "";
         if (! -e $run_all_lf) {
@@ -342,18 +342,18 @@ sub RunSuite
           chdir_log($build_dir);
           execute("python3 $lit -a SYCL/ExtraTests > $run_all_lf 2>&1");
         }
-  
+
         my $run_output = file2str($run_all_lf);
         $res = generate_run_result($run_output);
         my $filtered_output = generate_run_test_lf($run_output);
         $execution_output .= $filtered_output;
-   
+
         if ($res != PASS) {
           $msg = $failure_message;
           $ret = RUNFAIL;
         }
       }
-  
+
       finalize_test($tst,
                     $res,
                     '', # status
@@ -382,7 +382,7 @@ sub RunTest
     execute("python3 $lit -a SYCL/ExtraTests/tests/$test_path");
     $execution_output = $command_output;
     $failure_message = "test execution exit status $command_status";
-  
+
     return generate_run_result($execution_output);
 }
 
