@@ -263,7 +263,7 @@ sub run_cmake
                                           . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
                                           . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
                                           . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
-                                          . " -DLIT_EXTRA_ENVIRONMENT=\"OverrideDefaultFP64Settings=1,IGC_EnableDPEmulation=1\""
+                                          . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1,OverrideDefaultFP64Settings=1,IGC_EnableDPEmulation=1\""
                                           . " > $cmake_log 2>&1"
                                       );
     return $command_status, $command_output;
