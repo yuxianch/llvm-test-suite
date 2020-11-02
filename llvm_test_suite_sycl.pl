@@ -67,13 +67,13 @@ sub do_run
       if (! -e $run_all_lf) {
         set_tool_path();
         chdir_log($build_dir);
-        execute("python3 $lit -a . > $run_all_lf 2>&1");
+        execute("python3 $lit --timeout=180 -a . > $run_all_lf 2>&1");
         chdir_log($optset_work_dir);
       }
     } else {
       set_tool_path();
       chdir_log($build_dir);
-      execute("python3 $lit -a $path");
+      execute("python3 $lit --timeout=180 -a $path");
     }
 
     $execution_output = "$command_output";
