@@ -82,6 +82,28 @@ sub getTestPath
     return $test_path;
 }
 
+sub lscl {
+    my $args = shift;
+
+    my $os_flavor = is_windows() ? "win.x64" : "lin.x64";
+
+    my $lscl_bin = $ENV{"ICS_TESTDATA"} .
+      "/mainline/CT-SpecialTests/opencl/tools/$os_flavor/bin/lscl";
+
+    my @cmd = ($lscl_bin);
+
+    push(@cmd, @{$args}) if $args;
+
+    # lscl show warning "clGetDeviceInfo failed: Invalid value"
+    # which contains string "fail", cause tc fail
+    # Remove OS type check because RHEL8 has the same issue
+    push(@cmd, "--quiet");
+
+    execute(join(" ", @cmd));
+
+    return $command_output;
+}
+
 sub generate_run_result
 {
     my $output = shift;
@@ -174,6 +196,7 @@ sub run_cmake
     my $cpp_cmplr = &get_cmplr_cmd('cpp_compiler');
     my $c_cmd_opts = '';
     my $cpp_cmd_opts = '';
+    my $thread_opts = '';
 
     if ( $cpp_cmplr =~ /([^\s]*)\s(.*)/)
     {
@@ -191,6 +214,7 @@ sub run_cmake
         }
     } else {
         $c_cmplr = "clang";
+        $thread_opts = "-lpthread";
     }
 
     my $collect_code_size="Off";
@@ -234,8 +258,9 @@ sub run_cmake
            . " -DCMAKE_CXX_COMPILER=\"$cpp_cmplr\""
            . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
            . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
+           . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
            . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
-           . " -DLIT_EXTRA_ENVIRONMENT=\"OverrideDefaultFP64Settings=1,IGC_EnableDPEmulation=1\""
+           . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1\""
            . " -DSYCL_EXTRA_TESTS_SRC=$test_src"
            . " |& tee $cmake_log 2>&1"
     );
@@ -270,6 +295,7 @@ sub run_build
       # copy lit files in SYCL to SYCL/ExtraTests since some variables in SYCL/ExtraTests are not defined
       copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$optset_work_dir/SYCL/ExtraTests/") or die "Copy failed: $!";
       copy("$optset_work_dir/SYCL/lit.cfg.py", "$optset_work_dir/SYCL/ExtraTests/") or die "Copy failed: $!";
+
     }
 
     return $res;
@@ -325,6 +351,7 @@ sub RunSuite
 {
     my $ret = PASS;
     my @list = getList(@_);
+    my $lscl_output = "";
 
     foreach my $tst (@list) {
       $current_test = $tst;
@@ -338,10 +365,14 @@ sub RunSuite
       if ($res == PASS) {
         $execution_output = "";
         if (! -e $run_all_lf) {
+          # show devices info
+          $lscl_output = lscl();
           set_tool_path();
           chdir_log($build_dir);
           execute("python3 $lit -a SYCL/ExtraTests > $run_all_lf 2>&1");
         }
+
+        $execution_output .= $lscl_output;
 
         my $run_output = file2str($run_all_lf);
         $res = generate_run_result($run_output);
@@ -378,12 +409,14 @@ sub RunTest
     $execution_output = "";
     getTestPath();
     chdir_log($build_dir);
+    # show devices info
+    my $lscl_output .= lscl();
     set_tool_path();
     execute("python3 $lit -a SYCL/ExtraTests/tests/$test_path");
-    $execution_output = $command_output;
+    $execution_output = "$lscl_output\n$command_output";
     $failure_message = "test execution exit status $command_status";
 
-    return generate_run_result($execution_output);
+    return generate_run_result($command_output);
 }
 
 sub set_tool_path
