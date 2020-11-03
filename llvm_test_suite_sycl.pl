@@ -199,6 +199,7 @@ sub run_cmake
     my $cpp_cmplr = &get_cmplr_cmd('cpp_compiler');
     my $c_cmd_opts = '';
     my $cpp_cmd_opts = '';
+    my $thread_opts = '';
 
     if ( $cpp_cmplr =~ /([^\s]*)\s(.*)/)
     {
@@ -216,6 +217,7 @@ sub run_cmake
         }
     } else {
         $c_cmplr = "clang";
+        $thread_opts = "-lpthread";
     }
 
     my $collect_code_size="Off";
@@ -236,17 +238,13 @@ sub run_cmake
         $sycl_backend = "PI_OPENCL";
     }
 
-    #if ( get_running_device() == RUNNING_DEVICE_CPU )
     if ( $current_optset =~ m/opt_use_cpu/ )
     {
         $device = "cpu";
-    #}elsif ( get_running_device() == RUNNING_DEVICE_GPU ){
     }elsif ( $current_optset =~ m/opt_use_gpu/ ){
         $device = "gpu";
-    #}elsif ( get_running_device() == RUNNING_DEVICE_ACC ){
     }elsif ( $current_optset =~ m/opt_use_acc/ ){
         $device = "acc";
-    #}elsif ( get_running_device() == RUNNING_DEVICE_NV_GPU ){
     }elsif ( $current_optset =~ m/opt_use_nv_gpu/ ){
         $device = "gpu";
     }else{
@@ -262,6 +260,7 @@ sub run_cmake
                                           . " -DCMAKE_CXX_COMPILER=\"$cpp_cmplr\""
                                           . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
                                           . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
+                                          . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
                                           . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
                                           . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1\""
                                           . " > $cmake_log 2>&1"
