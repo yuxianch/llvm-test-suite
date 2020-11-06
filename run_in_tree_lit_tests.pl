@@ -25,9 +25,12 @@ sub unxpath
 
 sub getSrc
 {
-    $test_src = "$ENV{ICS_WSDIR}/llvm/sycl/test";
-    if ( -d "llvm/sycl/test" ) {
-      $test_src = getcwd()."/llvm/sycl/test";
+    # TODO: TESTING
+    #my $sycl_src = "llvm/sycl/test/on-device";
+    my $sycl_src = "llvm/sycl/test/host-interop-task";
+    $test_src = "$ENV{ICS_WSDIR}/$sycl_src";
+    if ( -d $sycl_src ) {
+      $test_src = getcwd()."/$sycl_src";
     }
     elsif (! -d $test_src) {
       my $ics_proj = $ENV{ICS_PROJECT};
@@ -48,7 +51,7 @@ sub getSrc
       execute("git clone -n $shared_opt $mirror/$llvm->{REPO} llvm && cd llvm && git checkout $llvm->{REV}");
       return BADTEST if $command_status;
 
-      $test_src = getcwd()."/llvm/sycl/test";
+      $test_src = getcwd()."/$sycl_src";
     }
 }
 
@@ -60,7 +63,9 @@ sub getList
 
     if (! @list) {
       # test name cannot include '/' or '\', so replace '/' with '~'
-      @list = map { s/.*test\///; s/~/~~/g; s/\//~/g; $_ } alloy_find($test_src, '.*\.cpp|.*\.c');
+      # TODO: CHANGE TEST FOLDER NAME
+      #@list = map { s/.*test\/on-device\///; s/~/~~/g; s/\//~/g; $_ } alloy_find($test_src, '.*\.cpp|.*\.c');
+      @list = map { s/.*test\/host-interop-task\///; s/~/~~/g; s/\//~/g; $_ } alloy_find($test_src, '.*\.cpp|.*\.c');
       # exclude files whose path includes "Input"
       my @indexToKeep = grep { $list[$_] !~ /\bInputs\b/ } 0..$#list;
       @list = @list[@indexToKeep];
@@ -262,7 +267,7 @@ sub run_cmake
            . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
            . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1\""
            . " -DSYCL_EXTRA_TESTS_SRC=$test_src"
-           . " |& tee $cmake_log 2>&1"
+           . " > $cmake_log "
     );
     $build_output = $command_output;
 }
@@ -278,24 +283,18 @@ sub run_build
     }
 
     # run ninja to copy files to SYCL/ExtraTests/tests folder
-    execute( "ninja ExtraTests |& tee $ninja_log");
+    execute( "ninja ExtraTests > $ninja_log");
     $build_output .= $command_output;
 
-    my $test_full_path = "$optset_work_dir/SYCL/ExtraTests/tests/" . getTestPath();
+    my $extratest_path = "SYCL/ExtraTests/tests";
+    my $test_full_path = "$optset_work_dir/$extratest_path/" . getTestPath();
     if (! -d $test_full_path and ! -f $test_full_path) {
       $build_output .= "\n$test_full_path not exist!\n";
       $res = COMPFAIL;
     } elsif (($res = $command_status) == PASS) {
-      # rename lit.site.cfg.py.in and lit.cfg.py in SYCL/ExtraTests/tests
-      my $test_folder = "$optset_work_dir/SYCL/ExtraTests/tests";
-      my @lit_files = alloy_find($test_folder, 'lit\.site\.cfg\.py\.in|lit\.cfg\.py');
-      foreach my $file (@lit_files) {
-        rename($file, "$file.ori");
-      }
-      # copy lit files in SYCL to SYCL/ExtraTests since some variables in SYCL/ExtraTests are not defined
-      copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$optset_work_dir/SYCL/ExtraTests/") or die "Copy failed: $!";
-      copy("$optset_work_dir/SYCL/lit.cfg.py", "$optset_work_dir/SYCL/ExtraTests/") or die "Copy failed: $!";
-
+      # copy lit files in SYCL to SYCL/ExtraTests/test since some variables in SYCL/ExtraTests are not defined
+      copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$optset_work_dir/$extratest_path/") or die "Copy failed: $!";
+      copy("$optset_work_dir/SYCL/lit.cfg.py", "$optset_work_dir/$extratest_path/") or die "Copy failed: $!";
     }
 
     return $res;
@@ -369,7 +368,7 @@ sub RunSuite
           $lscl_output = lscl();
           set_tool_path();
           chdir_log($build_dir);
-          execute("python3 $lit -a SYCL/ExtraTests > $run_all_lf 2>&1");
+          execute("python3 $lit -a SYCL/ExtraTests/tests > $run_all_lf 2>&1");
         }
 
         $execution_output .= $lscl_output;
