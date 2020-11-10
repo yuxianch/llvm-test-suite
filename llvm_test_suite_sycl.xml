@@ -17,6 +17,12 @@ Last Changed Revision: 11208d7c662ce69f0de75ba218956ba0050b4f8f    Thu Nov 5 03:
     <file path="config_sycl" />
   </files>
   <tests>
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="aot_accelerator" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="aot_cpu" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="aot_gpu" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="aot_multiple_devices" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="aot_spec_const_aot" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="aot_with_llvm_bc" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="atomicref_accessor" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="atomicref_add" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="atomicref_compare_exchange" />
@@ -26,51 +32,84 @@ Last Changed Revision: 11208d7c662ce69f0de75ba218956ba0050b4f8f    Thu Nov 5 03:
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="atomicref_min" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="atomicref_store" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="atomicref_sub" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_aot_accelerator" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_aot_cpu" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_aot_gpu" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_aot_with_llvm_bc" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_accessor" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_device_accessor_deduction" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_get_device_access_deduction" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_get_host_access_deduction" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_get_host_task_access_deduction" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_host_accessor_deduction" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_accessor_host_task_accessor_deduction" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_bit_cast_bit_cast" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_nan" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_printf" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_scalar_common" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_scalar_geometric" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_scalar_integer" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_scalar_math" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_scalar_math_2" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_scalar_relational" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_vector_common" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_vector_geometric" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_vector_integer" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_vector_math" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_built_ins_vector_relational" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_context_with_multiple_devices" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_assert_windows" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_cmath_fp64_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_cmath_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_math_fp64_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_math_fp64_windows_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_math_override_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_math_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_math_windows_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_std_complex_math_fp64_test" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicelib_std_complex_math_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_device_code_dae" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicecodesplit_aot_accelerator" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicecodesplit_aot_cpu" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicecodesplit_aot_gpu" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicecodesplit_split_per_kernel" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_devicecodesplit_split_per_source_main" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_enqueue_barrier" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_all_of" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_any_of" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_broadcast" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_exclusive_scan" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_inclusive_scan" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_leader" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_none_of" />
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_group_algorithm_reduce" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_buffer_location" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_aocx" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_aocx_win" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_io_pipes" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_lsu" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_pipes" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_pipes_legacy_ns" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_fpga_queue" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_global_fpga_device_selector" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_fpga_tests_pipes_info" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_free_function_queries_free_function_queries" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_free_function_queries_free_function_queries_sub_group" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_handler_copy_with_offset" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_handler_generic_integral_lambda" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_handler_mem_op" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_handler_set_args" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_interop_task" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_run_on_host_intel" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_handler_run_on_host_intel2" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_host_task_dependency" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_linear_sub_group" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_multi_ptr" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_multisource" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_opencl_interop" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_queue_queue" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_queue_queue_parallel_for_generic" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_queue_release" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_sampler_sampler" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_sampler_sampler_ocl" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="basic_vector_operators" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_nan" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_printf" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_scalar_common" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_scalar_geometric" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_scalar_integer" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_scalar_math" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_scalar_math_2" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_scalar_relational" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_vector_common" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_vector_geometric" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_vector_integer" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_vector_math" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="built_ins_vector_relational" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="config_allowlist" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="config_config" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="config_env_vars" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="config_kernel_from_file" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_assert" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_assert_aot" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_assert_windows" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_cmath_aot" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_cmath_fp64_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_cmath_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_complex_fpga" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_math_fp64_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_math_fp64_windows_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_math_override_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_math_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_math_windows_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_separate_compile_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_std_complex_math_fp64_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="devicelib_std_complex_math_test" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="esimd_accessor" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="esimd_bitonicsortk" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="esimd_bitonicsortkv2" />
@@ -99,10 +138,26 @@ Last Changed Revision: 11208d7c662ce69f0de75ba218956ba0050b4f8f    Thu Nov 5 03:
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="esimd_vadd_2d" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="esimd_vadd_raw_send" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="esimd_vadd_usm" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_reuse" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select_device" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select_device_acc" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select_device_cpu" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select_device_cuda" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select_device_level_zero" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="filterselector_select_device_opencl" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="functionpointers_fp_as_kernel_arg" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="functionpointers_pass_fp_through_buffer" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="functor_functor_inheritance" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="functor_kernel_functor" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_all_of" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_any_of" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_broadcast" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_exclusive_scan" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_inclusive_scan" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_leader" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_none_of" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="groupalgorithm_reduce" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="inlineasm_asm_16_empty" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="inlineasm_asm_16_matrix_mult" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="inlineasm_asm_16_no_input_int" />
@@ -194,5 +249,35 @@ Last Changed Revision: 11208d7c662ce69f0de75ba218956ba0050b4f8f    Thu Nov 5 03:
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="separatecompile_same_kernel" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="separatecompile_sycl_external" />
     <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="separatecompile_test" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_allocator_equal" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_allocator_shared" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_allocator_vector" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_badmalloc" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_depends_on" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_dmem_varied" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_dmemll" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_dmemllaligned" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_fill" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_hmemll" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_hmemllaligned" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_math" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_memadvise" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_memcpy" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_memset" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_mixed" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_mixed2" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_mixed2template" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_mixed_queue" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_multictxt" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_pfor_flatten" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_pfor_flatten_range_shortcut" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_pointer_query" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_prefetch" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_queue_wait" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_smem_concurrent" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_smem_varied" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_smemll" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_smemllaligned" />
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_sycl.xml" testName="usm_source_kernel_indirect_access" />
   </tests>
 </suite>
