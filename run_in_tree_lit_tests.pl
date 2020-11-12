@@ -27,7 +27,7 @@ sub getSrc
 {
     # TODO: TESTING
     #my $sycl_src = "llvm/sycl/test/on-device";
-    my $sycl_src = "llvm/sycl/test/host-interop-task";
+    my $sycl_src = "llvm/sycl/test";
     $test_src = "$ENV{ICS_WSDIR}/$sycl_src";
     if ( -d $sycl_src ) {
       $test_src = getcwd()."/$sycl_src";
@@ -64,8 +64,8 @@ sub getList
     if (! @list) {
       # test name cannot include '/' or '\', so replace '/' with '~'
       # TODO: CHANGE TEST FOLDER NAME
-      #@list = map { s/.*test\/on-device\///; s/~/~~/g; s/\//~/g; $_ } alloy_find($test_src, '.*\.cpp|.*\.c');
-      @list = map { s/.*test\/host-interop-task\///; s/~/~~/g; s/\//~/g; $_ } alloy_find($test_src, '.*\.cpp|.*\.c');
+      #@list = map { s/.*test\/on-device\///; s/~/~~/g; s/\//~/g; $_ } alloy_find("$test_src/on-device", '.*\.cpp|.*\.c');
+      @list = map { s/.*test\/basic_tests\///; s/~/~~/g; s/\//~/g; $_ } alloy_find("$test_src/basic_tests", '.*\.cpp|.*\.c');
       # exclude files whose path includes "Input"
       my @indexToKeep = grep { $list[$_] !~ /\bInputs\b/ } 0..$#list;
       @list = @list[@indexToKeep];
@@ -116,7 +116,7 @@ sub generate_run_result
     getTestPath();
 
     for my $line (split /^/, $output){
-      if ($line =~ m/^(.*): SYCL :: ExtraTests\/tests\/\Q$test_path\E \(.*\)/i) {
+      if ($line =~ m/^(.*): SYCL :: ExtraTests\/tests\/basic_tests\/\Q$test_path\E \(.*\)/i) {
         $result = $1;
         if ($result =~ m/^PASS/ or $result =~ m/^XFAIL/) {
           # Expected PASS and Expected FAIL
@@ -174,7 +174,7 @@ sub generate_run_test_lf
 
     my $printable = 0;
     for my $line (split /^/, $output) {
-      if ($line =~ m/^.*: SYCL :: ExtraTests\/tests\/\Q$test_path\E \(.*\)/i) {
+      if ($line =~ m/^.*: SYCL :: ExtraTests\/tests\/basic_tests\/\Q$test_path\E \(.*\)/i) {
         $printable = 1;
         $filtered_output .= $line;
         next;
@@ -368,7 +368,9 @@ sub RunSuite
           $lscl_output = lscl();
           set_tool_path();
           chdir_log($build_dir);
-          execute("python3 $lit -a SYCL/ExtraTests/tests > $run_all_lf 2>&1");
+          #TODO: CHANGE FOLDER
+          #execute("python3 $lit -a SYCL/ExtraTests/tests/on-device > $run_all_lf 2>&1");
+          execute("python3 $lit -a SYCL/ExtraTests/tests/basic_tests > $run_all_lf 2>&1");
         }
 
         $execution_output .= $lscl_output;
@@ -411,7 +413,9 @@ sub RunTest
     # show devices info
     my $lscl_output .= lscl();
     set_tool_path();
-    execute("python3 $lit -a SYCL/ExtraTests/tests/$test_path");
+    #TODO: CHANGE FOLDER
+    #execute("python3 $lit -a SYCL/ExtraTests/tests/on-device/$test_path");
+    execute("python3 $lit -a SYCL/ExtraTests/tests/basic_tests/$test_path");
     $execution_output = "$lscl_output\n$command_output";
     $failure_message = "test execution exit status $command_status";
 
