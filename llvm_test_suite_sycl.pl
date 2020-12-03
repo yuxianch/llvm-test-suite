@@ -17,6 +17,7 @@ my $device = "";
 
 my $build_dir = "";
 my $lit = "../lit/lit.py";
+my $run_path = "SYCL";
 
 sub BuildTest
 {
@@ -27,6 +28,13 @@ sub BuildTest
 
     if ( ! -f "./build/CMakeCache.txt")
     {
+        if ($current_suite eq "llvm_test_suite_sycl") {
+            # For llvm_test_suite_sycl, DO NOT run the tests under EMBARGO
+            append2file("config.excludes = ['EMBARGO']","SYCL/lit.cfg.py");
+        } elsif ($current_suite eq "llvm_test_suite_esimd_embargo") {
+            $run_path = "SYCL/ESIMD/EMBARGO";
+        }
+
         my ( $status, $output) = run_cmake();
         if ( $status)
         {
@@ -62,18 +70,19 @@ sub do_run
     my $r = shift;
     my $path = "$r->{fullpath}";
 
+    my $time = "--timeout=180";
     my $test_number = scalar(@test_name_list);
     if ($test_number > 10) {
       if (! -e $run_all_lf) {
         set_tool_path();
         chdir_log($build_dir);
-        execute("python3 $lit --timeout=180 -a . > $run_all_lf 2>&1");
+        execute("python3 $lit $time -a $run_path > $run_all_lf 2>&1");
         chdir_log($optset_work_dir);
       }
     } else {
       set_tool_path();
       chdir_log($build_dir);
-      execute("python3 $lit --timeout=180 -a $path");
+      execute("python3 $lit $time -a $path");
     }
 
     $execution_output = "$command_output";
@@ -304,6 +313,31 @@ sub print2file
 
     print FD $s;
     close FD;
+}
+
+sub append2file
+{
+    my $s = shift;
+    my $file = shift;
+    ###
+    # Only append string to a existing file considering that for llvm_test_suite_sycl,
+    # appending the string doesn't help if the file is not existing
+    if ( -f $file) {
+        open FD, ">>$file";
+
+        my $last = '';
+        while(<FD>) {
+            if ($_ =~ /\Q$s\E/) {
+                $last = $_;
+                last;
+            }
+        }
+        if ($last eq '') {
+            print FD $s;
+        }
+
+        close FD;
+    }
 }
 
 sub CleanupTest {
