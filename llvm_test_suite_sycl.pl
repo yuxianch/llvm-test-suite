@@ -248,6 +248,20 @@ sub run_cmake
         $device = "host";
     }
 
+    my $lit_extra_env = "SYCL_ENABLE_HOST_DEVICE=1";
+
+    my $cpath = '';
+    if (defined $ENV{CPATH}) {
+        $cpath = "CPATH=$ENV{CPATH}";
+        $lit_extra_env = join(',',$lit_extra_env,$cpath);
+    }
+
+    my $library_path = '';
+    if (defined $ENV{LIBRARY_PATH}) {
+        $library_path = "LIBRARY_PATH=$ENV{LIBRARY_PATH}";
+        $lit_extra_env = join(',',$lit_extra_env,$library_path);
+    }
+
     safe_Mkdir($build_dir);
     chdir_log($build_dir);
     execute( "cmake -G Ninja ../ -DTEST_SUITE_SUBDIRS=SYCL -DTEST_SUITE_LIT=$lit"
@@ -259,7 +273,7 @@ sub run_cmake
                                           . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
                                           . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
                                           . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
-                                          . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1\""
+                                          . " -DLIT_EXTRA_ENVIRONMENT=\"$lit_extra_env\""
                                           . " > $cmake_log 2>&1"
                                       );
     return $command_status, $command_output;
