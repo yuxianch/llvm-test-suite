@@ -249,18 +249,8 @@ sub run_cmake
     }
 
     my $lit_extra_env = "SYCL_ENABLE_HOST_DEVICE=1";
-
-    my $cpath = '';
-    if (defined $ENV{CPATH}) {
-        $cpath = "CPATH=$ENV{CPATH}";
-        $lit_extra_env = join(',',$lit_extra_env,$cpath);
-    }
-
-    my $library_path = '';
-    if (defined $ENV{LIBRARY_PATH}) {
-        $library_path = "LIBRARY_PATH=$ENV{LIBRARY_PATH}";
-        $lit_extra_env = join(',',$lit_extra_env,$library_path);
-    }
+    $lit_extra_env = join_extra_env($lit_extra_env,"CPATH");
+    $lit_extra_env = join_extra_env($lit_extra_env,"LIBRARY_PATH");
 
     safe_Mkdir($build_dir);
     chdir_log($build_dir);
@@ -277,6 +267,20 @@ sub run_cmake
                                           . " > $cmake_log 2>&1"
                                       );
     return $command_status, $command_output;
+}
+
+sub join_extra_env
+{
+    my $extra_env = shift;
+    my $env_var = shift;
+
+    my $env = '';
+    if (defined $ENV{$env_var}) {
+        $env = "$env_var=$ENV{$env_var}";
+        $extra_env = join(',',$extra_env,$env);
+    }
+
+    return $extra_env;
 }
 
 sub file2str
