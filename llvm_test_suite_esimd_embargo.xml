@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<suite>
+  <description>SYCL Explicit SIMD embargo tests.
+  This suite contains tests for non-public Intel Gen architectures and non-public features.
+  Test source suffix (e.g. _pvc) designates which architecture  the test is specific to.
+  The tests are not runnable via alloy yet due to hardware unavailability.
+  TODO: run tests via alloy using simulator.
+  TODO: auto-generate this file similarly to llvm_test_suite_sycl.xml
+  </description>
+  <files>
+    <file path="cmake" />
+    <file path="tools" />
+    <file path="CMakeLists.txt" />
+    <file path="litsupport" />
+    <file path="lit.cfg" />
+    <file path="lit.site.cfg.in" />
+    <file path="SYCL" />
+    <file path="$INFO_TDRIVE/ref/lit" />
+    <file path="config_sycl" />
+  </files>
+  <tests>
+    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_esimd_embargo.xml" testName="esimd_embargo_vadd_raw_send_ats" />
+  </tests>
+</suite>
