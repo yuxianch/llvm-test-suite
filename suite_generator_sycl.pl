@@ -32,6 +32,10 @@ sub main
     $sycl_dir = "$test_suite_repo/SYCL";
 
     check_src();
+    # a list of tests/directories which must not be auto-generated
+    my @tests_to_skip = (
+      "./ESIMD/EMBARGO/" # TODO auto-generate this too
+    );
 
     execute("cd $sycl_dir && find -iname '*.cpp' | grep -vw 'Inputs'");
     my @list = split( "\n", $command_output);
@@ -40,6 +44,12 @@ sub main
     my $tests = {};
     foreach my $t (@list)
     {
+        # see if the test needs to be skipped
+        if (grep { $t =~ /^$_/ } @tests_to_skip) {
+          print STDERR "skipped test: $t\n";
+          next;
+        }
+
         my $path;
         if ( $t =~ /(.*)\.cpp$/) {
             $path = $1;
