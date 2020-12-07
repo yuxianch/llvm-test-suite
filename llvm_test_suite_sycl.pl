@@ -70,19 +70,21 @@ sub do_run
     my $r = shift;
     my $path = "$r->{fullpath}";
 
-    my $time = "--timeout=180";
-    my $test_number = scalar(@test_name_list);
-    if ($test_number > 10) {
-      if (! -e $run_all_lf) {
+    if (! -e $run_all_lf) {
+      my $time = "--timeout=180";
+      my @whole_suite_test = sort(get_test_list());
+      my @current_test_list = sort(@test_name_list);
+      my $is_suite = is_same(\@current_test_list, \@whole_suite_test);
+      if ($is_suite) {
         set_tool_path();
         chdir_log($build_dir);
         execute("python3 $lit $time -a $run_path > $run_all_lf 2>&1");
         chdir_log($optset_work_dir);
+      } else {
+        set_tool_path();
+        chdir_log($build_dir);
+        execute("python3 $lit $time -a $path");
       }
-    } else {
-      set_tool_path();
-      chdir_log($build_dir);
-      execute("python3 $lit $time -a $path");
     }
 
     $execution_output = "$command_output";
@@ -278,6 +280,21 @@ sub run_cmake
     return $command_status, $command_output;
 }
 
+sub is_same
+{
+    my($array1, $array2) = @_;
+
+    # Return 0 if two arrays are not the same length
+    return 0 if scalar(@$array1) != scalar(@$array2);
+
+    for(my $i = 0; $i <= $#$array1; $i++) {
+        if ($array1->[$i] ne $array2->[$i]) {
+           return 0;
+        }
+    }
+    return 1;
+}
+
 sub join_extra_env
 {
     my $extra_env = shift;
@@ -320,24 +337,20 @@ sub append2file
     my $s = shift;
     my $file = shift;
     ###
-    # Only append string to a existing file considering that for llvm_test_suite_sycl,
-    # appending the string doesn't help if the file is not existing
-    if ( -f $file) {
-        open FD, ">>$file";
+    open FD, ">>$file" or die("ERROR: Failed to open $file for write.");
 
-        my $last = '';
-        while(<FD>) {
-            if ($_ =~ /\Q$s\E/) {
-                $last = $_;
-                last;
-            }
+    my $last = '';
+    while(<FD>) {
+        if ($_ =~ /\Q$s\E/) {
+            $last = $_;
+            last;
         }
-        if ($last eq '') {
-            print FD $s;
-        }
-
-        close FD;
     }
+    if ($last eq '') {
+        print FD $s;
+    }
+
+    close FD;
 }
 
 sub CleanupTest {
