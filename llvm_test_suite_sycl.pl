@@ -202,7 +202,8 @@ sub generate_run_test_lf
 sub run_cmake
 {
     my $c_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_c $opt_c_compiler_flags";
-    my $cpp_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_cpp  $opt_cpp_compiler_flags";
+    my $cpp_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_cpp $opt_cpp_compiler_flags";
+    my $link_flags = "$linker_list_options $opt_linker_flags";
     my $c_cmplr = &get_cmplr_cmd('c_compiler');
     my $cpp_cmplr = &get_cmplr_cmd('cpp_compiler');
     my $c_cmd_opts = '';
@@ -272,6 +273,7 @@ sub run_cmake
                                           . " -DCMAKE_CXX_COMPILER=\"$cpp_cmplr\""
                                           . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
                                           . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
+                                          . " -DCMAKE_EXE_LINKER_FLAGS=\"$link_flags\""
                                           . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
                                           . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
                                           . " -DLIT_EXTRA_ENVIRONMENT=\"$lit_extra_env\""
