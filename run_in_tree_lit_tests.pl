@@ -1,6 +1,7 @@
 use ics_subs;
 
 my $cmake_log = "$optset_work_dir/cmake.log";
+my $cmake_log_last = "$optset_work_dir/cmake.log.last";
 my $ninja_log = "$optset_work_dir/ninja.log";
 my $run_all_lf = "$optset_work_dir/run_all.lf";
 
@@ -40,15 +41,31 @@ sub getSrc
                         ! $ics_ver  or
                         ! $mirror;
 
-      my ($llvm) = grep { $_->{DEST} eq "llvm" } get_project_chunks($ics_proj, $ics_ver);
+      my $co_id = "";
+      my $llvm = "";
+      if ($ics_proj eq "syclos") {
+        ($llvm) = grep { $_->{DEST} eq "llvm" } get_project_chunks("xmain");
+        return BADTEST if ! defined $llvm or
+                          ! $llvm->{REPO};
 
-      return BADTEST if ! defined $llvm or
-                        ! $llvm->{REPO} or
-                        ! $llvm->{REV};
+        my ($tag) = split "_", $ics_ver;
+        $co_id = "sycl-nightly/$tag";
+      } elsif ($ics_proj =~ /xmain/) {
+        ($llvm) = grep { $_->{DEST} eq "llvm" } get_project_chunks($ics_proj, $ics_ver);
+
+        return BADTEST if ! defined $llvm or
+                          ! $llvm->{REPO} or
+                          ! $llvm->{REV};
+
+        $co_id = "$llvm->{REV}";
+      } else {
+        # Unsupported for other unknown project
+        return BADTEST;
+      }
 
       rmtree("llvm");
       my $shared_opt = is_windows() ? "" : "--shared";
-      execute("git clone -n $shared_opt $mirror/$llvm->{REPO} llvm && cd llvm && git checkout $llvm->{REV}");
+      execute("git clone -n $shared_opt $mirror/$llvm->{REPO} llvm && cd llvm && git checkout $co_id");
       return BADTEST if $command_status;
 
       $test_src = getcwd()."/$sycl_src";
@@ -120,6 +137,7 @@ sub generate_run_result
         $result = $1;
         if ($result =~ m/^PASS/ or $result =~ m/^XFAIL/) {
           # Expected PASS and Expected FAIL
+          $failure_message = "";
           return PASS;
         } elsif ($result =~ m/^XPASS/) {
           # Unexpected PASS
@@ -197,6 +215,7 @@ sub run_cmake
 {
     my $c_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_c $opt_c_compiler_flags";
     my $cpp_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_cpp  $opt_cpp_compiler_flags";
+    my $link_flags = "$linker_list_options $opt_linker_flags";
     my $c_cmplr = &get_cmplr_cmd('c_compiler');
     my $cpp_cmplr = &get_cmplr_cmd('cpp_compiler');
     my $c_cmd_opts = '';
@@ -253,8 +272,6 @@ sub run_cmake
         $device = "host";
     }
 
-    safe_Mkdir($build_dir);
-    chdir_log($build_dir);
     execute( "cmake -G Ninja ../"
            . " -DTEST_SUITE_SUBDIRS=SYCL -DTEST_SUITE_LIT=$lit"
            . " -DSYCL_BE=$sycl_backend -DSYCL_TARGET_DEVICES=$device"
@@ -263,6 +280,7 @@ sub run_cmake
            . " -DCMAKE_CXX_COMPILER=\"$cpp_cmplr\""
            . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
            . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
+           . " -DCMAKE_EXE_LINKER_FLAGS=\"$link_flags\""
            . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
            . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
            . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1\""
@@ -274,27 +292,34 @@ sub run_cmake
 
 sub run_build
 {
-    my $res;
+    my $res = PASS;
 
-    # run cmake
-    run_cmake();
-    if (($res = $command_status) != PASS) {
-      return $res;
+    safe_Mkdir($build_dir);
+    chdir_log($build_dir);
+
+    my $extratest_path = "$optset_work_dir/SYCL/ExtraTests/tests";
+    if ( ! -d $extratest_path or ! -f "CMakeCache.txt" or -f $cmake_log_last) {
+      # run cmake
+      run_cmake();
+      if (($res = $command_status) != PASS) {
+        return $res;
+      }
     }
 
-    # run ninja to copy files to SYCL/ExtraTests/tests folder
-    execute( "ninja ExtraTests > $ninja_log");
-    $build_output .= $command_output;
+    if ( ! -d $extratest_path or ! -f "build.ninja") {
+      # run ninja to copy files to SYCL/ExtraTests/tests folder
+      execute( "ninja ExtraTests > $ninja_log");
+      $build_output .= $command_output;
 
-    my $extratest_path = "SYCL/ExtraTests/tests";
-    my $test_full_path = "$optset_work_dir/$extratest_path/" . getTestPath();
-    if (! -d $test_full_path and ! -f $test_full_path) {
-      $build_output .= "\n$test_full_path not exist!\n";
-      $res = COMPFAIL;
-    } elsif (($res = $command_status) == PASS) {
-      # copy lit files in SYCL to SYCL/ExtraTests/test since some variables in SYCL/ExtraTests are not defined
-      copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$optset_work_dir/$extratest_path/") or die "Copy failed: $!";
-      copy("$optset_work_dir/SYCL/lit.cfg.py", "$optset_work_dir/$extratest_path/") or die "Copy failed: $!";
+      my $test_full_path = "$extratest_path/basic_tests/" . getTestPath();
+      if (! -d $test_full_path and ! -f $test_full_path) {
+        $build_output .= "\n$test_full_path not exist!\n";
+        $res = COMPFAIL;
+      } elsif (($res = $command_status) == PASS) {
+        # copy lit files in SYCL to SYCL/ExtraTests/test since some variables in SYCL/ExtraTests are not defined
+        copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$extratest_path/") or die "Copy failed: $!";
+        copy("$optset_work_dir/SYCL/lit.cfg.py", "$extratest_path/") or die "Copy failed: $!";
+      }
     }
 
     return $res;
@@ -367,7 +392,6 @@ sub RunSuite
           # show devices info
           $lscl_output = lscl();
           set_tool_path();
-          chdir_log($build_dir);
           #TODO: CHANGE FOLDER
           #execute("python3 $lit -a SYCL/ExtraTests/tests/on-device > $run_all_lf 2>&1");
           execute("python3 $lit -a SYCL/ExtraTests/tests/basic_tests > $run_all_lf 2>&1");
@@ -402,6 +426,7 @@ sub RunSuite
                     $execution_output
       );
     }
+    clean_suite();
     return $ret; # need to return RUNFAIL if at least one test fails
 }
 
@@ -409,7 +434,6 @@ sub RunTest
 {
     $execution_output = "";
     getTestPath();
-    chdir_log($build_dir);
     # show devices info
     my $lscl_output .= lscl();
     set_tool_path();
@@ -444,6 +468,12 @@ sub file2str
     my $str = <FD>;
     close FD;
     return $str;
+}
+
+sub clean_suite
+{
+    rename($run_all_lf, "$run_all_lf.last");
+    rename($cmake_log, "$cmake_log_last");
 }
 
 1;
