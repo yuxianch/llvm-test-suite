@@ -11,30 +11,66 @@ my $cwd = cwd();
 my @test_name_list = ();
 my $short_test_name;
 my $test_info;
+my $config_folder = "";
+my $subdir = "SYCL";
 
 my $sycl_backend = "";
 my $device = "";
 
 my $build_dir = "";
 my $lit = "../lit/lit.py";
-my $run_path = "SYCL";
+
+sub init_test
+{
+    my $suite_feature = $current_suite;
+    $suite_feature =~ s/^llvm_test_suite_//;
+    $config_folder = 'config_sycl';
+    if ($suite_feature ne 'sycl')
+    {
+        $config_folder = $config_folder . '_' . $suite_feature;
+        $subdir = uc $suite_feature;
+        $subdir = 'SYCL_' . $subdir;
+
+        my $cmake_file = "$subdir/CMakeLists.txt";
+        if ( ! -d "$subdir/External") {
+            `sed -i '/^add_subdirectory(External)/s/^/#/g' $cmake_file`;
+        }
+        if ( ! -d "$subdir/ExtraTests"){
+            `sed -i '/^add_subdirectory(ExtraTests)/s/^/#/g' $cmake_file`;
+        }
+
+        my $sycl_dir = "$optset_work_dir/SYCL";
+        my @file_list = alloy_find($sycl_dir, '(.*\.(h|hpp|H|HPP)|lit\..*|CMakeLists\.txt)');
+
+        # Copy files to folder $subdir
+        foreach my $file (@file_list) {
+            my $rel_file_path = dirname($file);
+            my $file_path_in_subdir = "$subdir/$rel_file_path";
+            my $file_in_sycl = "SYCL/$file";
+            if ( -d $file_path_in_subdir) {
+                cp($file_in_sycl, $file_path_in_subdir) or die "Copy $file_in_sycl to $file_path_in_subdir failed: $!\n";
+            }
+        }
+    }
+
+    return PASS;
+}
 
 sub BuildTest
 {
     @test_name_list = get_tests_to_run();
+
+    if ($current_test eq $test_name_list[0])
+    {
+        init_test();
+    }
+
     $test_info = get_info();
 
     $build_dir = $cwd . "/build";
 
     if ( ! -f "./build/CMakeCache.txt")
     {
-        if ($current_suite eq "llvm_test_suite_sycl") {
-            # For llvm_test_suite_sycl, DO NOT run the tests under EMBARGO
-            append2file("config.excludes = ['EMBARGO']","SYCL/lit.cfg.py");
-        } elsif ($current_suite eq "llvm_test_suite_esimd_embargo") {
-            $run_path = "SYCL/ESIMD/EMBARGO";
-        }
-
         my ( $status, $output) = run_cmake();
         if ( $status)
         {
@@ -78,7 +114,7 @@ sub do_run
       if ($is_suite) {
         set_tool_path();
         chdir_log($build_dir);
-        execute("python3 $lit $time -a $run_path > $run_all_lf 2>&1");
+        execute("python3 $lit $time -a . > $run_all_lf 2>&1");
         chdir_log($optset_work_dir);
       } else {
         set_tool_path();
@@ -105,14 +141,13 @@ sub set_tool_path
 
 sub get_info
 {
-    my $test_file = file2str("./config_sycl/$current_test.info");
-    $test_file =~ /(.*)\.\bcpp\b/;
-    my $path = $1;
+    my $test_file = file2str("./$config_folder/$current_test.info");
+    $short_test_name = $test_file;
+    $short_test_name =~ s/^$subdir\///;
 
-    my $short_name = basename( $path);
-    $short_test_name = "\Q$short_name";
-    $path = dirname( $path);
-    my $r = { dir => $path, short_name => $short_name, fullpath => "$path/$short_name.cpp"};
+    my $short_name = basename($test_file);
+    my $path = dirname($test_file);
+    my $r = { dir => $path, short_name => $short_name, fullpath => $test_file};
 
     return $r;
 }
@@ -122,7 +157,7 @@ sub generate_run_result
     my $output = shift;
     my $result = "";
     for my $line (split /^/, $output){
-      if ($line =~ m/^(.*): SYCL :: .*\b$short_test_name\b\.cpp \(.*\)/i) {
+      if ($line =~ m/^(.*): SYCL :: \Q$short_test_name\E \(.*\)/) {
         $result = $1;
         if ($result =~ m/^PASS/ or $result =~ m/^XFAIL/) {
           # Expected PASS and Expected FAIL
@@ -180,7 +215,7 @@ sub generate_run_test_lf
 
     my $printable = 0;
     for my $line (split /^/, $output) {
-      if ($line =~ m/^.*: SYCL :: .*\b$short_test_name\b\.cpp \(.*\)/i) {
+      if ($line =~ m/^.*: SYCL :: \Q$short_test_name\E \(.*\)/) {
         $printable = 1;
         $filtered_output .= $line;
         next;
@@ -268,7 +303,7 @@ sub run_cmake
 
     safe_Mkdir($build_dir);
     chdir_log($build_dir);
-    execute( "cmake -G Ninja ../ -DTEST_SUITE_SUBDIRS=SYCL -DTEST_SUITE_LIT=$lit"
+    execute( "cmake -G Ninja ../ -DTEST_SUITE_SUBDIRS=$subdir -DTEST_SUITE_LIT=$lit"
                                           . " -DSYCL_BE=$sycl_backend -DSYCL_TARGET_DEVICES=$device"
                                           . " -DCMAKE_BUILD_TYPE=None" # to remove predifined options
                                           . " -DCMAKE_C_COMPILER=\"$c_cmplr\""
@@ -343,7 +378,7 @@ sub file2str
     my $file = shift;
     ###
     local $/=undef;
-    open FD, "<$file";
+    open FD, "<$file" or die "Fail to open file $file!\n";
     binmode FD;
     my $str = <FD>;
     close FD;
