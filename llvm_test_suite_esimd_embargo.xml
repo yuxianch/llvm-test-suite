@@ -5,8 +5,7 @@
   Test source suffix (e.g. _pvc) designates which architecture  the test is specific to.
   The tests are not runnable via alloy yet due to hardware unavailability.
   TODO: run tests via alloy using simulator.
-  TODO: auto-generate this file similarly to llvm_test_suite_sycl.xml
-  </description>
+</description>
   <files>
     <file path="cmake" />
     <file path="tools" />
@@ -15,10 +14,11 @@
     <file path="lit.cfg" />
     <file path="lit.site.cfg.in" />
     <file path="SYCL" />
+    <file path="SYCL_ESIMD_EMBARGO" />
     <file path="$INFO_TDRIVE/ref/lit" />
-    <file path="config_sycl" />
+    <file path="config_sycl_esimd_embargo" />
   </files>
   <tests>
-    <test configFile="config_sycl/TEMPLATE_llvm_test_suite_esimd_embargo.xml" testName="esimd_embargo_vadd_raw_send_ats" />
+    <test configFile="config_sycl_esimd_embargo/TEMPLATE_llvm_test_suite_esimd_embargo.xml" testName="esimd_embargo_vadd_raw_send_ats" />
   </tests>
 </suite>
