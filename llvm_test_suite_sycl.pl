@@ -210,22 +210,24 @@ sub run_cmake
     my $cpp_cmd_opts = '';
     my $thread_opts = '';
 
-    if ( $cpp_cmplr =~ /([^\s]*)\s(.*)/)
-    {
-        $cpp_cmplr = $1;
-        $cpp_cmd_opts = $2;
-        # Do not pass "-c" or "/c" arguments because some commands are executed with onestep
-        $cpp_cmd_opts =~ s/[-\/]{1}c//;
-    }
+    ($c_cmplr, $c_cmd_opts) = remove_opt($c_cmplr);
+    ($cpp_cmplr, $cpp_cmd_opts) = remove_opt($cpp_cmplr);
+
     if ($cmplr_platform{OSFamily} eq "Windows") {
-        $c_cmplr = "clang-cl";
-        if ($cpp_cmplr eq 'clang++') {
+        if ($compiler !~ /xmain/) {
+            $c_cmplr = "clang-cl";
             $cpp_cmplr = "clang-cl";
             # Add "/EHsc" for syclos
             $cpp_cmd_opts .= " /EHsc";
+        } else {
+            $c_cmplr = "clang";
+            $cpp_cmplr = 'clang++';
         }
     } else {
         $c_cmplr = "clang";
+        if ($compiler =~ /xmain/) {
+            $cpp_cmplr = "clang++";
+        }
         $thread_opts = "-lpthread";
     }
 
@@ -280,6 +282,31 @@ sub run_cmake
                                           . " > $cmake_log 2>&1"
                                       );
     return $command_status, $command_output;
+}
+
+sub remove_opt
+{
+    my $cmplr_info = shift;
+
+    my $cmplr = '';
+    my $cmd_opts = '';
+    if ( $cmplr_info =~ /([^\s]*)\s(.*)/)
+    {
+        $cmplr = $1;
+        $cmd_opts = $2;
+        chomp $cmd_opts;
+        # Do not pass "-c" or "/c" arguments because some commands are executed with onestep
+        $cmd_opts =~ s/[-\/]{1}c$|[-\/]{1}c\s{1,}//;
+        # Do not pass "-fsycl" because it's included in the RUN commands
+        $cmd_opts =~ s/-fsycl$|-fsycl\s{1,}//;
+        # Do not pass "-fsycl-unnamed-lambda"
+        $cmd_opts =~ s/-fsycl-unnamed-lambda$|-fsycl-unnamed-lambda\s{1,}//;
+        # Remove "/EHsc" since it's not supported by clang/clang++
+        $cmd_opts =~ s/\/EHsc$|\/EHsc\s{1,}//;
+    } else {
+        $cmplr = $cmplr_info;
+    }
+    return $cmplr, $cmd_opts;
 }
 
 sub is_same
