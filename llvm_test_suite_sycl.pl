@@ -31,6 +31,23 @@ sub init_test
         $subdir = uc $suite_feature;
         $subdir = 'SYCL_' . $subdir;
 
+        my $sycl_dir = "./SYCL";
+        my @file_list = alloy_find($sycl_dir, '(.*\.(h|hpp|H|HPP)|lit\..*|CMakeLists\.txt)');
+
+        # Copy files to folder $subdir
+        foreach my $file (@file_list) {
+            $file =~ s/^\.\/SYCL\///;
+            my $rel_file_path = dirname($file);
+            my $file_path_in_subdir = "$optset_work_dir/$subdir";
+            if ($rel_file_path ne '.') {
+                $file_path_in_subdir = $file_path_in_subdir . "/$rel_file_path";
+            }
+            my $file_in_sycl = "$optset_work_dir/SYCL/$file";
+            if ( -d $file_path_in_subdir) {
+                cp($file_in_sycl, $file_path_in_subdir);
+            }
+        }
+
         my $cmake_file = "$subdir/CMakeLists.txt";
         if ( ! -d "$subdir/External") {
             `sed -i '/^add_subdirectory(External)/s/^/#/g' $cmake_file`;
@@ -39,18 +56,6 @@ sub init_test
             `sed -i '/^add_subdirectory(ExtraTests)/s/^/#/g' $cmake_file`;
         }
 
-        my $sycl_dir = "$optset_work_dir/SYCL";
-        my @file_list = alloy_find($sycl_dir, '(.*\.(h|hpp|H|HPP)|lit\..*|CMakeLists\.txt)');
-
-        # Copy files to folder $subdir
-        foreach my $file (@file_list) {
-            my $rel_file_path = dirname($file);
-            my $file_path_in_subdir = "$subdir/$rel_file_path";
-            my $file_in_sycl = "SYCL/$file";
-            if ( -d $file_path_in_subdir) {
-                cp($file_in_sycl, $file_path_in_subdir) or die "Copy $file_in_sycl to $file_path_in_subdir failed: $!\n";
-            }
-        }
     }
 
     return PASS;
