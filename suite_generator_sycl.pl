@@ -227,8 +227,8 @@ if ( scalar(@ARGV) == 0 ) {
     $feature_folder = $ARGV[0];
     $feature_folder =~ s/\/$//;
     $feature_folder = basename($feature_folder);
-    if ( $feature_folder !~ /^SYCL_/ and $feature_folder !~ /^\.\/SYCL_/ ) {
-        die "Unsupported folder $feature_folder! Please make sure the folder name starts with 'SYCL_'.\n\n$help_info";
+    if ( $feature_folder ne 'SYCL' and $feature_folder !~ /^SYCL_/ ) {
+        die "Unsupported folder $feature_folder! Please make sure the folder name is 'SYCL' or starts with 'SYCL_'.\n\n$help_info";
     }
 
     if ( defined $ARGV[1] ) {
@@ -243,8 +243,11 @@ if ( scalar(@ARGV) == 0 ) {
     $feature_name = $feature_folder;
     $feature_name =~ s/^SYCL_//;
     $feature_name = lc $feature_name;
-    $config_folder = $config_folder . '_' . $feature_name;
+    if ( $feature_folder ne 'SYCL' ) {
+        $config_folder = $config_folder . '_' . $feature_name;
+    }
     $suite_name = "llvm_test_suite_" . $feature_name;
+    print "Generate tc files for $suite_name\n\n";
 } else {
     die "Error: The number of arguments is larger than 2!\n\n$help_info";
 }
