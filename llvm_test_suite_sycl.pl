@@ -252,8 +252,11 @@ sub run_cmake
 
     ($c_cmplr, $c_cmd_opts) = remove_opt($c_cmplr);
     ($cpp_cmplr, $cpp_cmd_opts) = remove_opt($cpp_cmplr);
+    $c_cmd_opts .= $c_flags;
+    $cpp_cmd_opts .= $cpp_flags;
 
     if ($cmplr_platform{OSFamily} eq "Windows") {
+    # Windows
         if ($compiler !~ /xmain/) {
             $c_cmplr = "clang-cl";
             $cpp_cmplr = "clang-cl";
@@ -262,8 +265,11 @@ sub run_cmake
         } else {
             $c_cmplr = "clang";
             $cpp_cmplr = 'clang++';
+            $c_cmd_opts = convert_opt($c_cmd_opts);
+            $cpp_cmd_opts = convert_opt($cpp_cmd_opts);
         }
     } else {
+    # Linux
         $c_cmplr = "clang";
         if ($compiler =~ /xmain/) {
             $cpp_cmplr = "clang++";
@@ -313,8 +319,8 @@ sub run_cmake
                                           . " -DCMAKE_BUILD_TYPE=None" # to remove predifined options
                                           . " -DCMAKE_C_COMPILER=\"$c_cmplr\""
                                           . " -DCMAKE_CXX_COMPILER=\"$cpp_cmplr\""
-                                          . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
-                                          . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
+                                          . " -DCMAKE_C_FLAGS=\"$c_cmd_opts\""
+                                          . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts\""
                                           . " -DCMAKE_EXE_LINKER_FLAGS=\"$link_flags\""
                                           . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
                                           . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
@@ -322,6 +328,18 @@ sub run_cmake
                                           . " > $cmake_log 2>&1"
                                       );
     return $command_status, $command_output;
+}
+
+sub convert_opt
+{
+    my $opt = shift;
+
+    # Convert options from MSVC format to clang format
+    # For other options, keep them the original format
+    $opt =~ s/[\/\-]Od/-O0/g;
+    $opt =~ s/[\/]O([0-3]{1})/-O$1/g;
+    $opt =~ s/\/Zi/-g/g;
+    return $opt;
 }
 
 sub remove_opt
