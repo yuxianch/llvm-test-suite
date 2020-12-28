@@ -112,19 +112,18 @@ sub do_run
     my $path = "$r->{fullpath}";
 
     if (! -e $run_all_lf) {
-      my $time = "--timeout=180";
       my @whole_suite_test = sort(get_test_list());
       my @current_test_list = sort(@test_name_list);
       my $is_suite = is_same(\@current_test_list, \@whole_suite_test);
       if ($is_suite) {
         set_tool_path();
         chdir_log($build_dir);
-        execute("python3 $lit $time -a . > $run_all_lf 2>&1");
+        execute("python3 $lit -a . > $run_all_lf 2>&1");
         chdir_log($optset_work_dir);
       } else {
         set_tool_path();
         chdir_log($build_dir);
-        execute("python3 $lit $time -a $path");
+        execute("python3 $lit -a $path");
       }
     }
 
