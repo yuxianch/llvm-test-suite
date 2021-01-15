@@ -312,6 +312,7 @@ sub run_cmake
     $lit_extra_env = join_extra_env($lit_extra_env,"LIBRARY_PATH");
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX");
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX_STRIP");
+    $lit_extra_env = join_extra_env($lit_extra_env,"TC_WRAPPER_PATH");
 
     safe_Mkdir($build_dir);
     chdir_log($build_dir);
