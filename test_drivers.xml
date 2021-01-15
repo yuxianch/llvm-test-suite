@@ -4,6 +4,8 @@
   </testDriver>
   <testDriver driverID="llvm_test_suite_sycl" file="llvm_test_suite_sycl.pl" title="Driver for llvm_test_suite_sycl suite">
   </testDriver>
+  <testDriver driverID="llvm_test_suite_sycl_valgrind" file="llvm_test_suite_sycl_valgrind.pl" title="Driver for llvm_test_suite_sycl_valgrind suite">
+  </testDriver>
   <testDriver driverID="dynamic_lit" file="run_in_tree_lit_tests.pl" title="Driver for sycl-in-tree suite">
   </testDriver>
 </testDrivers>
