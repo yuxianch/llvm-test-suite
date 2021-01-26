@@ -1,19 +1,16 @@
 use ics_subs;
 
-my $cmake_log = "$optset_work_dir/cmake.log";
-my $cmake_log_last = "$optset_work_dir/cmake.log.last";
-my $ninja_log = "$optset_work_dir/ninja.log";
 my $run_all_lf = "$optset_work_dir/run_all.lf";
-
-my $test_src;
+my $wsdir;
+my $tests_abspath;
 my $test_path;
 my %data;
 my $build_output;
 my $build_dir = "$optset_work_dir/build";
-my $lit = "../lit/lit.py";
-
+my $cmplr_root;
 my $sycl_backend = "";
-my $device = "";
+my $ics_os = is_windows() ? "Windows":"Linux";
+my $exe_postfix = is_windows() ? ".exe":"";
 
 sub unxpath
 {
@@ -24,16 +21,15 @@ sub unxpath
     return $fpath;
 }
 
-sub getSrc
+sub get_src
 {
-    # TODO: TESTING
-    #my $sycl_src = "llvm/sycl/test/on-device";
-    my $sycl_src = "llvm/sycl/test";
-    $test_src = "$ENV{ICS_WSDIR}/$sycl_src";
+    my $sycl_src = "llvm/sycl/test/on-device";
+    my $cwd = getcwd();
     if ( -d $sycl_src ) {
-      $test_src = getcwd()."/$sycl_src";
+      $tests_abspath = "$cwd/$sycl_src";
+      $wsdir = "$cwd";
     }
-    elsif (! -d $test_src) {
+    elsif (! -d "$ENV{ICS_WSDIR}/$sycl_src") {
       my $ics_proj = $ENV{ICS_PROJECT};
       my $ics_ver  = $ENV{ICS_VERSION};
       my $mirror   = unxpath($ENV{ICS_GIT_MIRROR});
@@ -63,16 +59,28 @@ sub getSrc
         return BADTEST;
       }
 
+      my $shared_opt = "";
+      if (is_windows()) {
+        execute("git --version");
+        # git 2.10.1 has a bug in using "--shared"
+        if ($command_output !~ /^git version 2.10.1/) {
+          $shared_opt = "--shared";
+        }
+      }
+
       rmtree("llvm");
-      my $shared_opt = is_windows() ? "" : "--shared";
       execute("git clone -n $shared_opt $mirror/$llvm->{REPO} llvm && cd llvm && git checkout $co_id");
       return BADTEST if $command_status;
 
-      $test_src = getcwd()."/$sycl_src";
+      $tests_abspath = "$cwd/$sycl_src";
+      $wsdir = "$cwd";
+    } else {
+      $tests_abspath = "$ENV{ICS_WSDIR}/$sycl_src";
+      $wsdir = "$ENV{ICS_WSDIR}";
     }
 }
 
-sub getList
+sub get_list
 {
     # for separate build and test sessions it'd be better to store
     # build phase results in some file and then reread the data
@@ -80,9 +88,7 @@ sub getList
 
     if (! @list) {
       # test name cannot include '/' or '\', so replace '/' with '~'
-      # TODO: CHANGE TEST FOLDER NAME
-      #@list = map { s/.*test\/on-device\///; s/~/~~/g; s/\//~/g; $_ } alloy_find("$test_src/on-device", '.*\.cpp|.*\.c');
-      @list = map { s/.*test\/basic_tests\///; s/~/~~/g; s/\//~/g; $_ } alloy_find("$test_src/basic_tests", '.*\.cpp|.*\.c');
+      @list = map { s/.*test\/on-device\///; s/~/~~/g; s/\//~/g; $_ } alloy_find("$tests_abspath", '.*\.cpp|.*\.c');
       # exclude files whose path includes "Input"
       my @indexToKeep = grep { $list[$_] !~ /\bInputs\b/ } 0..$#list;
       @list = @list[@indexToKeep];
@@ -91,7 +97,7 @@ sub getList
     return @list;
 }
 
-sub getTestPath
+sub get_test_path
 {
     if ($current_test ne "") {
       $test_path = $current_test;
@@ -102,6 +108,31 @@ sub getTestPath
       $test_path = "";
     }
     return $test_path;
+}
+
+sub report_result
+{
+    my $testname = shift;
+    my $result = shift;
+    my $message = shift;
+    my $comp_output = shift;
+    my $exec_output = shift;
+
+    finalize_test($testname,
+                  $result,
+                  '', # status
+                  0, # exesize
+                  0, # objsize
+                  0, # compile_time
+                  0, # link_time
+                  0, # execution_time
+                  0, # save_time
+                  0, # execute_time
+                  $message,
+                  0, # total_time
+                  $comp_output,
+                  $exec_output
+    );
 }
 
 sub lscl {
@@ -123,17 +154,34 @@ sub lscl {
 
     execute(join(" ", @cmd));
 
-    return $command_output;
+    my $output = "\n  ------ lscl output ------\n"
+               . "$command_output\n";
+
+    return $output;
+}
+
+sub check_device
+{
+    my $dev = shift;
+    my $lscl_output = shift;
+
+    my $status = PASS;
+    my $message = "";
+    if ($lscl_output !~ /\b$dev\b/) {
+      $status = RUNFAIL;
+      $message = "lscl: No $dev found";
+    }
+    return ($status, $message);
 }
 
 sub generate_run_result
 {
     my $output = shift;
     my $result = "";
-    getTestPath();
+    get_test_path();
 
     for my $line (split /^/, $output){
-      if ($line =~ m/^(.*): SYCL :: ExtraTests\/tests\/basic_tests\/\Q$test_path\E \(.*\)/i) {
+      if ($line =~ m/^(.*): SYCL-on-device :: \Q$test_path\E \(.*\)/i) {
         $result = $1;
         if ($result =~ m/^PASS/ or $result =~ m/^XFAIL/) {
           # Expected PASS and Expected FAIL
@@ -192,7 +240,7 @@ sub generate_run_test_lf
 
     my $printable = 0;
     for my $line (split /^/, $output) {
-      if ($line =~ m/^.*: SYCL :: ExtraTests\/tests\/basic_tests\/\Q$test_path\E \(.*\)/i) {
+      if ($line =~ m/^.*: SYCL-on-device :: \Q$test_path\E \(.*\)/i) {
         $printable = 1;
         $filtered_output .= $line;
         next;
@@ -213,160 +261,174 @@ sub generate_run_test_lf
 
 sub run_cmake
 {
-    my $c_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_c $opt_c_compiler_flags";
-    my $cpp_flags = "$current_optset_opts $compiler_list_options $compiler_list_options_cpp  $opt_cpp_compiler_flags";
-    my $link_flags = "$linker_list_options $opt_linker_flags";
-    my $c_cmplr = &get_cmplr_cmd('c_compiler');
-    my $cpp_cmplr = &get_cmplr_cmd('cpp_compiler');
-    my $c_cmd_opts = '';
-    my $cpp_cmd_opts = '';
-    my $thread_opts = '';
+    my $cmdl = "cmake -G Ninja"
+             . " -DLLVM_TARGETS_TO_BUILD=\"X86\""
+             . " -DLLVM_EXTERNAL_PROJECTS=\"sycl-test\""
+             . " -DLLVM_EXTERNAL_SYCL_TEST_SOURCE_DIR=\"$wsdir/llvm/sycl/test/on-device\""
+             . " -DSYCL_SOURCE_DIR=\"$wsdir/llvm/sycl\""
+             . " -DOpenCL_LIBRARIES=\"$cmplr_root/lib\""
+             . " -DLLVMGenXIntrinsics_SOURCE_DIR=\"$optset_work_dir/vc-intrinsics\""
+             . " $wsdir/llvm/llvm";
 
-    if ( $cpp_cmplr =~ /([^\s]*)\s(.*)/)
-    {
-        $cpp_cmplr = $1;
-        $cpp_cmd_opts = $2;
-        # Do not pass "-c" or "/c" arguments because some commands are executed with onestep
-        $cpp_cmd_opts =~ s/[-\/]{1}c//;
-    }
-    if ($cmplr_platform{OSFamily} eq "Windows") {
-        $c_cmplr = "clang-cl";
-        if ($cpp_cmplr eq 'clang++') {
-            $cpp_cmplr = "clang-cl";
-            # Add "/EHsc" for syclos
-            $cpp_cmd_opts .= " /EHsc";
-        }
-    } else {
-        $c_cmplr = "clang";
-        $thread_opts = "-lpthread";
-    }
-
-    my $collect_code_size="Off";
-    execute("which llvm-size");
-    if ($command_status == 0)
-    {
-        $collect_code_size="On";
-    }
-
-    if ( $current_optset =~ m/ocl/ )
-    {
-        $sycl_backend = "PI_OPENCL";
-    } elsif ( $current_optset =~ m/nv_gpu/ ) {
-        $sycl_backend = "PI_CUDA";
-    } elsif ( $current_optset =~ m/gpu/ ) {
-        $sycl_backend = "PI_LEVEL_ZERO";
-    } else {
-        $sycl_backend = "PI_OPENCL";
-    }
-
-    if ( $current_optset =~ m/opt_use_cpu/ )
-    {
-        $device = "cpu";
-    }elsif ( $current_optset =~ m/opt_use_gpu/ ){
-        $device = "gpu";
-    }elsif ( $current_optset =~ m/opt_use_acc/ ){
-        $device = "acc";
-    }elsif ( $current_optset =~ m/opt_use_nv_gpu/ ){
-        $device = "gpu";
-    }else{
-        $device = "host";
-    }
-
-    execute( "cmake -G Ninja ../"
-           . " -DTEST_SUITE_SUBDIRS=SYCL -DTEST_SUITE_LIT=$lit"
-           . " -DSYCL_BE=$sycl_backend -DSYCL_TARGET_DEVICES=$device"
-           . " -DCMAKE_BUILD_TYPE=None" # to remove predifined options
-           . " -DCMAKE_C_COMPILER=\"$c_cmplr\""
-           . " -DCMAKE_CXX_COMPILER=\"$cpp_cmplr\""
-           . " -DCMAKE_C_FLAGS=\"$c_cmd_opts $c_flags\""
-           . " -DCMAKE_CXX_FLAGS=\"$cpp_cmd_opts $cpp_flags\""
-           . " -DCMAKE_EXE_LINKER_FLAGS=\"$link_flags\""
-           . " -DCMAKE_THREAD_LIBS_INIT=\"$thread_opts\""
-           . " -DTEST_SUITE_COLLECT_CODE_SIZE=\"$collect_code_size\""
-           . " -DLIT_EXTRA_ENVIRONMENT=\"SYCL_ENABLE_HOST_DEVICE=1\""
-           . " -DSYCL_EXTRA_TESTS_SRC=$test_src"
-           . " > $cmake_log "
-    );
-    $build_output = $command_output;
+    execute($cmdl);
+    $build_output .= "\n  ------ cmake output ------\n"
+                   . "$command_output\n";
 }
 
 sub run_build
 {
+    my $cpp_cmplr = &get_cmplr_cmd('cpp_compiler');
+    $cpp_cmplr =~ s/^([^\s]{1,})\s+.*$/$1/;
+    $cmplr_root = which($cpp_cmplr);
+    $cmplr_root = dirname(dirname($cmplr_root));
+    $cmplr_root = unxpath($cmplr_root);
+
+    if ( $current_optset =~ m/ocl/ )
+    {
+        $sycl_backend = "opencl";
+    } elsif ( $current_optset =~ m/nv_gpu/ ) {
+        $sycl_backend = "cuda";
+    } elsif ( $current_optset =~ m/gpu/ ) {
+        $sycl_backend = "level_zero";
+    } else {
+        $sycl_backend = "opencl";
+    }
+
+    set_envvar("SYCL_LIT_USE_HOST_ONLY", 0);
+
     my $res = PASS;
 
     safe_Mkdir($build_dir);
     chdir_log($build_dir);
 
-    my $extratest_path = "$optset_work_dir/SYCL/ExtraTests/tests";
-    if ( ! -d $extratest_path or ! -f "CMakeCache.txt" or -f $cmake_log_last) {
-      # run cmake
-      run_cmake();
-      if (($res = $command_status) != PASS) {
-        return $res;
-      }
+    my $error_msg = "";
+    # run cmake
+    run_cmake();
+
+    if (($res = $command_status) != PASS) {
+      $error_msg = "cmake returned non zero exit code";
+      return ($res, $error_msg);
     }
 
-    if ( ! -d $extratest_path or ! -f "build.ninja") {
-      # run ninja to copy files to SYCL/ExtraTests/tests folder
-      execute( "ninja ExtraTests > $ninja_log");
-      $build_output .= $command_output;
+    return ($res, $error_msg);
+}
 
-      my $test_full_path = "$extratest_path/basic_tests/" . getTestPath();
-      if (! -d $test_full_path and ! -f $test_full_path) {
-        $build_output .= "\n$test_full_path not exist!\n";
-        $res = COMPFAIL;
-      } elsif (($res = $command_status) == PASS) {
-        # copy lit files in SYCL to SYCL/ExtraTests/test since some variables in SYCL/ExtraTests are not defined
-        copy("$optset_work_dir/SYCL/lit.site.cfg.py.in", "$extratest_path/") or die "Copy failed: $!";
-        copy("$optset_work_dir/SYCL/lit.cfg.py", "$extratest_path/") or die "Copy failed: $!";
-      }
+sub run_lit_tests
+{
+    my $tests_path = shift;
+
+    my $lit = is_windows() ? "./bin/llvm-lit.py":"./bin/llvm-lit";
+    my $cmplr_bin_path = "$cmplr_root/bin";
+    my $cmplr_lib_path = "$cmplr_root/lib";
+    my $cmplr_include_path = "$cmplr_root/include/sycl";
+    my $tool_path = "$optset_work_dir/tools/$ics_os";
+    my $get_device_tool_path = "$tool_path/get_device_count_by_type$exe_postfix";
+
+    my $l0_header_path = "";
+    if (defined $ENV{L0LOADERROOT} and defined $ENV{L0LOADERVER}) {
+       $l0_header_path = "$ENV{L0LOADERROOT}/$ENV{L0LOADERVER}/include";
     }
 
-    return $res;
+    my $env_path = join($path_sep, $tool_path, $ENV{PATH});
+    set_envvar("PATH", $env_path, join($path_sep, $tool_path, '$PATH'));
+
+    my $cmdl = "python3 $lit -a"
+             . " --param SYCL_PLUGIN=$sycl_backend"
+             . " --param SYCL_TOOLS_DIR=\"$cmplr_bin_path\""
+             . " --param SYCL_INCLUDE=\"$cmplr_include_path\""
+             . " --param SYCL_LIBS_DIR=\"$cmplr_lib_path\""
+             . " --param GET_DEVICE_TOOL=\"$get_device_tool_path\""
+             . " --param LEVEL_ZERO_INCLUDE_DIR=\"$l0_header_path\""
+             . " $tests_path";
+
+    execute($cmdl);
+    return $command_output;
 }
 
 sub BuildSuite
 {
-    if (getSrc() eq BADTEST) {
+    if (get_src() eq BADTEST) {
       return BADTEST;
     }
 
-    my @list = getList(@_);
+    my @list = get_list(@_);
 
-    my $ret = $COMPFAIL;
     $build_output = "";
     $current_test = "";
-    my $res = run_build();
+
+    # Show devices info
+    my $lscl_output = lscl();
+    $build_output .= $lscl_output;
+
+    my ($res, $err_msg) = run_build();
+
+    # If a device is missing on the machine, report the issue
+    if ($current_optset =~ /gpu/) {
+      my ($status, $message) = check_device("GPU", $lscl_output);
+      report_result("check_GPU", $status, $message, "", $lscl_output) if $status != PASS;
+    }
+
+    if ($sycl_backend eq "opencl") {
+      my ($status, $message) = check_device("CPU", $lscl_output);
+      report_result("check_CPU", $status, $message, "", $lscl_output) if $status != PASS;
+      ($status, $message) = check_device("accelerator", $lscl_output);
+      report_result("check_accelerator", $status, $message, "", $lscl_output) if $status != PASS;
+    }
+
+    my $ret = COMPFAIL;
     foreach my $tst (@list) {
       $current_test = $tst;
       $data{$tst}{res} = $res;
-      if ($res eq PASS) {
+      $data{$tst}{co} = $build_output;
+      if ($res == PASS) {
         $ret = PASS;
       }
       else {
-        $data{$tst}{msg} = "cmake/ninja return non zero";
+        $data{$tst}{msg} = $err_msg;
       }
-      $data{$tst}{co} = $build_output || "check cmake or ninja log files\n";
     }
+
+    # If all the tests are failed, need to report their report here
+    # because RunSuite won't be run
+    if ($ret != PASS) {
+      foreach my $tst (@list) {
+        report_result($tst, COMPFAIL, $err_msg, $build_output, "");
+      }
+    }
+
     return $ret; # need to return PASS if at least one test succeeds
 }
 
 sub BuildTest
 {
-    if (getSrc() eq BADTEST) {
+    $build_output = "";
+
+    # Show devices info
+    my $lscl_output = lscl();
+
+    if ($current_test =~ /^check_(GPU)$/ or $current_test =~ /^check_(CPU)$/ or $current_test =~ /^check_(accelerator)$/) {
+      my $dev = $1;
+      my ($status, $message) = check_device($dev, $lscl_output);
+      $failure_message = $message if $status != PASS;
+      $compiler_output .= $lscl_output;
+      return $status;
+    }
+
+    if (get_src() eq BADTEST) {
       return BADTEST;
     }
 
-    $build_output = "";
+    $build_output .= $lscl_output;
+
     my $ret = $COMPFAIL;
-    my $res = run_build();
+    my ($res, $err_msg) = run_build();
     if ($res == PASS) {
       $ret = PASS;
     }
     else {
-      $failure_message = "cmake/ninja return non zero";
+      $failure_message = $err_msg;
     }
-    $compiler_output = $build_output || "check cmake or ninja log files\n";
+    $compiler_output = $build_output;
 
     return $ret;
 }
@@ -374,8 +436,8 @@ sub BuildTest
 sub RunSuite
 {
     my $ret = PASS;
-    my @list = getList(@_);
-    my $lscl_output = "";
+    my @list = get_list(@_);
+    my $run_output = "";
 
     foreach my $tst (@list) {
       $current_test = $tst;
@@ -389,43 +451,28 @@ sub RunSuite
       if ($res == PASS) {
         $execution_output = "";
         if (! -e $run_all_lf) {
-          # show devices info
-          $lscl_output = lscl();
-          set_tool_path();
-          #TODO: CHANGE FOLDER
-          #execute("python3 $lit -a SYCL/ExtraTests/tests/on-device > $run_all_lf 2>&1");
-          execute("python3 $lit -a SYCL/ExtraTests/tests/basic_tests > $run_all_lf 2>&1");
+          $run_output = run_lit_tests($tests_abspath);
+          print2file($run_output, $run_all_lf);
+        } else {
+          $run_output = file2str($run_all_lf);
         }
 
-        $execution_output .= $lscl_output;
-
-        my $run_output = file2str($run_all_lf);
         $res = generate_run_result($run_output);
         my $filtered_output = generate_run_test_lf($run_output);
-        $execution_output .= $filtered_output;
+        $execution_output .= "\n  ------ llvm-lit output ------\n"
+                           . "$filtered_output\n";
 
         if ($res != PASS) {
           $msg = $failure_message;
           $ret = RUNFAIL;
         }
+      } else {
+        $ret = RUNFAIL;
       }
 
-      finalize_test($tst,
-                    $res,
-                    '', # status
-                    0, # exesize
-                    0, # objsize
-                    0, # compile_time
-                    0, # link_time
-                    0, # execution_time
-                    0, # save_time
-                    0, # execute_time
-                    $msg,
-                    0, # total_time
-                    $data{$tst}{co},
-                    $execution_output
-      );
+      report_result($tst, $res, $msg, $data{$tst}{co}, $execution_output);
     }
+
     clean_suite();
     return $ret; # need to return RUNFAIL if at least one test fails
 }
@@ -433,29 +480,32 @@ sub RunSuite
 sub RunTest
 {
     $execution_output = "";
-    getTestPath();
-    # show devices info
-    my $lscl_output .= lscl();
-    set_tool_path();
-    #TODO: CHANGE FOLDER
-    #execute("python3 $lit -a SYCL/ExtraTests/tests/on-device/$test_path");
-    execute("python3 $lit -a SYCL/ExtraTests/tests/basic_tests/$test_path");
-    $execution_output = "$lscl_output\n$command_output";
+
+    # For tests check_*, they are not real tests.
+    # If RunTest() is called, it means that BuildTest() is passed
+    # so we just need to return PASS.
+    if ($current_test =~ /^check_(GPU)$/ or $current_test =~ /^check_(CPU)$/ or $current_test =~ /^check_(accelerator)$/) {
+      return PASS;
+    }
+
+    get_test_path();
+    my $run_output = run_lit_tests("$tests_abspath/$test_path");
+    $execution_output .= "\n  ------ llvm-lit output ------\n"
+                       . "$run_output\n";
     $failure_message = "test execution exit status $command_status";
 
     return generate_run_result($command_output);
 }
 
-sub set_tool_path
+sub print2file
 {
-    my $tool_path = "";
-    if ($cmplr_platform{OSFamily} eq "Windows") {
-        $tool_path = "$optset_work_dir/lit/tools/Windows";
-    } else {
-        $tool_path = "$optset_work_dir/lit/tools/Linux";
-    }
-    my $env_path = join($path_sep, $tool_path, $ENV{PATH});
-    set_envvar("PATH", $env_path, join($path_sep, $tool_path, '$PATH'));
+    my $s = shift;
+    my $file = shift;
+    ###
+    open FD, ">$file";
+
+    print FD $s;
+    close FD;
 }
 
 sub file2str
@@ -473,7 +523,6 @@ sub file2str
 sub clean_suite
 {
     rename($run_all_lf, "$run_all_lf.last");
-    rename($cmake_log, "$cmake_log_last");
 }
 
 1;

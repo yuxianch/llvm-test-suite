@@ -6,13 +6,7 @@
   <rules>
   </rules>
   <files>
-    <file path="cmake" />
-    <file path="tools" />
-    <file path="CMakeLists.txt" />
-    <file path="litsupport" />
-    <file path="lit.cfg" />
-    <file path="lit.site.cfg.in" />
-    <file path="SYCL" />
-    <file path="$INFO_TDRIVE/ref/lit" />
+    <file path="$INFO_TDRIVE/ref/lit/tools" />
+    <file path="vc-intrinsics" />
   </files>
 </suite>
