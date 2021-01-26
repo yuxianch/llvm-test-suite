@@ -20,6 +20,31 @@ my $device = "";
 my $build_dir = "";
 my $lit = "../lit/lit.py";
 
+sub lscl {
+    my $args = shift;
+
+    my $os_flavor = is_windows() ? "win.x64" : "lin.x64";
+
+    my $lscl_bin = $ENV{"ICS_TESTDATA"} .
+      "/mainline/CT-SpecialTests/opencl/tools/$os_flavor/bin/lscl";
+
+    my @cmd = ($lscl_bin);
+
+    push(@cmd, @{$args}) if $args;
+
+    # lscl show warning "clGetDeviceInfo failed: Invalid value"
+    # which contains string "fail", cause tc fail
+    # Remove OS type check because RHEL8 has the same issue
+    push(@cmd, "--quiet");
+
+    execute(join(" ", @cmd));
+
+    my $output = "\n  ------ lscl output ------\n"
+               . "$command_output\n";
+
+    return $output;
+}
+
 sub init_test
 {
     my $suite_feature = $current_suite;
@@ -63,35 +88,38 @@ sub init_test
 
 sub BuildTest
 {
-    @test_name_list = get_tests_to_run();
+    $build_dir = $cwd . "/build";
 
+    @test_name_list = get_tests_to_run();
     if ($current_test eq $test_name_list[0])
     {
         init_test();
-    }
 
-    $test_info = get_info();
-
-    $build_dir = $cwd . "/build";
-
-    if ( ! -f "./build/CMakeCache.txt")
-    {
         my ( $status, $output) = run_cmake();
         if ( $status)
         {
             rename($cmake_log, $cmake_err);
+        } else {
+            # If there is no configuration issue, print device info
+            my $lscl_output = lscl();
+            append2file($lscl_output, $cmake_log);
         }
     }
+
+    $compiler_output = file2str($cmake_log);
+
     if ( ! -f $cmake_err)
     {
         return $PASS;
     }
+
     $failure_message = "cmake returned non zero exit code";
     return $COMPFAIL;
 }
 
 sub RunTest
 {
+    $test_info = get_info();
     my ( $status, $output) = do_run($test_info);
     my $res = "";
     if (-e $run_all_lf)
@@ -117,12 +145,9 @@ sub do_run
       my $is_suite = is_same(\@current_test_list, \@whole_suite_test);
       if ($is_suite) {
         set_tool_path();
-        chdir_log($build_dir);
         execute("python3 $lit -a . > $run_all_lf 2>&1");
-        chdir_log($optset_work_dir);
       } else {
         set_tool_path();
-        chdir_log($build_dir);
         execute("python3 $lit -a $path");
       }
     }
@@ -145,7 +170,7 @@ sub set_tool_path
 
 sub get_info
 {
-    my $test_file = file2str("./$config_folder/$current_test.info");
+    my $test_file = file2str("$optset_work_dir/$config_folder/$current_test.info");
     $short_test_name = $test_file;
     $short_test_name =~ s/^$subdir\///;
 
