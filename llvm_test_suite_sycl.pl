@@ -89,6 +89,8 @@ sub init_test
 sub BuildTest
 {
     $build_dir = $cwd . "/build";
+    safe_Mkdir($build_dir);
+    chdir_log($build_dir);
 
     @test_name_list = get_tests_to_run();
     if ($current_test eq $test_name_list[0])
@@ -339,8 +341,6 @@ sub run_cmake
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX_STRIP");
     $lit_extra_env = join_extra_env($lit_extra_env,"TC_WRAPPER_PATH");
 
-    safe_Mkdir($build_dir);
-    chdir_log($build_dir);
     execute( "cmake -G Ninja ../ -DTEST_SUITE_SUBDIRS=$subdir -DTEST_SUITE_LIT=$lit"
                                           . " -DSYCL_BE=$sycl_backend -DSYCL_TARGET_DEVICES=$device"
                                           . " -DCMAKE_BUILD_TYPE=None" # to remove predifined options
