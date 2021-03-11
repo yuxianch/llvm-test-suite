@@ -341,6 +341,10 @@ sub run_cmake
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX_STRIP");
     $lit_extra_env = join_extra_env($lit_extra_env,"TC_WRAPPER_PATH");
 
+    if ( defined $ENV{PIN_CMD} ) {
+        $lit_extra_env = join(',',$lit_extra_env,$ENV{PIN_CMD});
+    }
+
     execute( "cmake -G Ninja ../ -DTEST_SUITE_SUBDIRS=$subdir -DTEST_SUITE_LIT=$lit"
                                           . " -DSYCL_BE=$sycl_backend -DSYCL_TARGET_DEVICES=$device"
                                           . " -DCMAKE_BUILD_TYPE=None" # to remove predifined options
