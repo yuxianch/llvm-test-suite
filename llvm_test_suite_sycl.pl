@@ -335,8 +335,6 @@ sub run_cmake
     }
 
     my $lit_extra_env = "SYCL_ENABLE_HOST_DEVICE=1";
-    $lit_extra_env = join_extra_env($lit_extra_env,"CPATH");
-    $lit_extra_env = join_extra_env($lit_extra_env,"LIBRARY_PATH");
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX");
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX_STRIP");
     $lit_extra_env = join_extra_env($lit_extra_env,"TC_WRAPPER_PATH");
