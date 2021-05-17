@@ -52,7 +52,7 @@ sub main
 
     check_src();
 
-    execute("cd $sycl_dir && find -iname '*.cpp' | grep -vw 'Inputs'");
+    execute("cd $sycl_dir && find -iname '*.cpp' | grep -vw 'Inputs' | sort");
     my @list = split( "\n", $command_output);
     execute("rm -rf $config_folder && mkdir $config_folder");
 
@@ -71,8 +71,17 @@ sub main
         my $short_name = basename( $path);
         $path = dirname( $path);
         $name =~ s/$feature_folder\///;
-        $name =~ s/[\/\/\-\.]/_/g;
+
+        # Use $diff_name to save another name that is not duplicate with $name
+        # $diff_name only replaces "/" with "_" and append "_0" in the end
+        my $diff_name = $name;
+        $diff_name =~ s/[\/]/_/g;
+        $diff_name .= "_0";
+
+        $name =~ s/[\/\-\.]/_/g;
         $name = lc $name;
+
+        $name = $diff_name if defined $tests->{ $name};
         my $r = { name => $name, path => $path, fullpath =>"$path/$short_name.cpp", short_name => $short_name};
 
         $tests->{ $name} = $r;
