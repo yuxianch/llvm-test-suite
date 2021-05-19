@@ -5,6 +5,7 @@
 #
 ##===----------------------------------------------------------------------===##
 
+
 # Helper function
 sub Ratio {
   my ($Cols, $Col) = @_;
@@ -12,9 +13,10 @@ sub Ratio {
       $Cols->[$Col-2] != "0") {
     return $Cols->[$Col-1]/$Cols->[$Col-2];
   } else {
-    return "n/a";
+    return "N/A";
   }
 }
+
 
 sub OnlyMayInfo {
   $_[0] =~ m|/([0-9]+)%/|;
