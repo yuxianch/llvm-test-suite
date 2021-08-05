@@ -71,3 +71,6 @@ SYCL/USM @jbrodman
 
 # Stream
 SYCL/Basic/stream @againull
+
+# Test scripts
+*.pl @yuxianch @yanfeng3721
