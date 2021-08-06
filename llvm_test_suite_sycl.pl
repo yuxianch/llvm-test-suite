@@ -49,8 +49,10 @@ sub init_test
 {
     my $suite_feature = $current_suite;
     $suite_feature =~ s/^llvm_test_suite_//;
+    #Remove suffix of suite names if it has
+    $suite_feature =~ s/~.*$//;
     $config_folder = 'config_sycl';
-    if ($suite_feature ne 'sycl')
+    if ($suite_feature ne 'sycl' and $suite_feature ne 'sycl_valgrind')
     {
         $config_folder = $config_folder . '_' . $suite_feature;
         $subdir = uc $suite_feature;
@@ -83,6 +85,44 @@ sub init_test
 
     }
 
+    #Remove untested source files from $subdir if it run with several subsuites
+    my $info_dir = "$optset_work_dir/$config_folder";
+    my @info_files = glob("$info_dir/*.info");
+
+    my @in_test_list = get_test_list();
+    my %in_test_hash = map { $_ => 1 } @in_test_list;
+    my @outof_test_list = ();
+
+    for my $file (@info_files) {
+      $file = basename($file);
+      $file =~ s/\.info//;
+      if (!exists($in_test_hash{$file})) {
+        push(@outof_test_list, $file);
+      }
+    }
+    for my $test (@outof_test_list) {
+      my $test_info = get_info($test);
+      my $path = "$test_info->{fullpath}";
+      rmtree($path);
+    }
+
+    #add Valgrind command for test run, added by Xingxu"
+    if ($suite_feature eq 'sycl_valgrind') {
+      my $valgrind_commands = "/rdrive/ref/valgrind/v3.16.0/efi2/bin/valgrind --leak-check=full --show-leak-kinds=all --trace-children=yes --log-file=$cwd/valgrind_reports/log.%%p";
+      my $config_file = "SYCL/lit.cfg.py";
+      if (-f $config_file) {
+         my $valgrind_dir = $cwd . "/valgrind_reports";
+         safe_Mkdir($valgrind_dir);
+         my $replacement = "env SYCL_DEVICE_FILTER={SYCL_PLUGIN}";
+         `sed -i 's!$replacement:gpu !$replacement:gpu $valgrind_commands !g' $config_file`;
+         `sed -i 's!$replacement:cpu !$replacement:cpu $valgrind_commands !g' $config_file`;
+         `sed -i 's!$replacement:host !$replacement:host $valgrind_commands !g' $config_file`;
+         `sed -i 's!$replacement:acc !$replacement:acc $valgrind_commands !g' $config_file`;
+         `sed -i 's!$replacement !$replacement $valgrind_commands !g' $config_file`;
+         `sed -i 's!$replacement:gpu,host !$replacement:gpu,host $valgrind_commands !g' $config_file`;
+      }
+    }
+
     return PASS;
 }
 
@@ -90,12 +130,12 @@ sub BuildTest
 {
     $build_dir = $cwd . "/build";
     safe_Mkdir($build_dir);
-    chdir_log($build_dir);
 
     @test_name_list = get_tests_to_run();
     if ($current_test eq $test_name_list[0])
     {
         init_test();
+        chdir_log($build_dir);
 
         my ( $status, $output) = run_cmake();
         if ( $status)
@@ -106,6 +146,8 @@ sub BuildTest
             my $lscl_output = lscl();
             append2file($lscl_output, $cmake_log);
         }
+    } else {
+      chdir_log($build_dir);
     }
 
     $compiler_output = file2str($cmake_log);
@@ -145,12 +187,30 @@ sub do_run
       my @whole_suite_test = sort(get_test_list());
       my @current_test_list = sort(@test_name_list);
       my $is_suite = is_same(\@current_test_list, \@whole_suite_test);
+      my $python = "python3";
+      my $timeset = "";
+      my $matrix = "";
+
+      if (defined $ENV{'CURRENT_GPU_DEVICE'}) {
+        my $current_gpu = $ENV{'CURRENT_GPU_DEVICE'};
+        if ($current_gpu =~ m/ats/) {
+          $python = "/usr/bin/python3";
+          $matrix = "-Dmatrix=1";
+        } elsif ($current_gpu =~ m/pvc/) {
+          $timeset = "--timeout 1200";
+        }
+      }
+
+      if ($current_suite eq 'llvm_test_suite_sycl_valgrind'){
+        $timeset = "--timeout 0";
+      }
+
       if ($is_suite) {
         set_tool_path();
-        execute("python3 $lit -a . > $run_all_lf 2>&1");
+        execute("$python $lit -a $matrix . $timeset > $run_all_lf 2>&1");
       } else {
         set_tool_path();
-        execute("python3 $lit -a $path");
+        execute("$python $lit -a $matrix $path $timeset");
       }
     }
 
@@ -172,7 +232,10 @@ sub set_tool_path
 
 sub get_info
 {
-    my $test_file = file2str("$optset_work_dir/$config_folder/$current_test.info");
+    my $test_name = shift;
+    $test_name = $current_test if ! defined $test_name or $test_name eq "";
+
+    my $test_file = file2str("$optset_work_dir/$config_folder/$test_name.info");
     $short_test_name = $test_file;
     $short_test_name =~ s/^$subdir\///;
 
@@ -209,7 +272,8 @@ sub generate_run_result
           return $SKIP;
         } else {
           # Every test should have result.
-          # If not, it is maybe something wrong in processing result
+          # If not, it is maybe something wrong in processing result or missing result
+          $failure_message = "Result not found";
           return $FILTERFAIL;
         }
       }
@@ -235,7 +299,8 @@ sub generate_run_result
     }
 
     # Every test should have result.
-    # If not, it is maybe something wrong in processing result
+    # If not, it is maybe something wrong in processing result or missing result
+    $failure_message = "Result not found";
     return $FILTERFAIL;
 }
 
@@ -335,6 +400,8 @@ sub run_cmake
     }
 
     my $lit_extra_env = "SYCL_ENABLE_HOST_DEVICE=1";
+    $lit_extra_env = join_extra_env($lit_extra_env,"CPATH");
+    $lit_extra_env = join_extra_env($lit_extra_env,"LIBRARY_PATH");
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX");
     $lit_extra_env = join_extra_env($lit_extra_env,"GCOV_PREFIX_STRIP");
     $lit_extra_env = join_extra_env($lit_extra_env,"TC_WRAPPER_PATH");
