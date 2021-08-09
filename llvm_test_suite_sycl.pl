@@ -13,6 +13,7 @@ my $short_test_name;
 my $test_info;
 my $config_folder = "";
 my $subdir = "SYCL";
+my $insert_command = "";
 
 my $sycl_backend = "";
 my $device = "";
@@ -108,19 +109,9 @@ sub init_test
 
     #add Valgrind command for test run, added by Xingxu"
     if ($suite_feature eq 'sycl_valgrind') {
-      my $valgrind_commands = "/rdrive/ref/valgrind/v3.16.0/efi2/bin/valgrind --leak-check=full --show-leak-kinds=all --trace-children=yes --log-file=$cwd/valgrind_reports/log.%%p";
-      my $config_file = "SYCL/lit.cfg.py";
-      if (-f $config_file) {
-         my $valgrind_dir = $cwd . "/valgrind_reports";
-         safe_Mkdir($valgrind_dir);
-         my $replacement = "env SYCL_DEVICE_FILTER={SYCL_PLUGIN}";
-         `sed -i 's!$replacement:gpu !$replacement:gpu $valgrind_commands !g' $config_file`;
-         `sed -i 's!$replacement:cpu !$replacement:cpu $valgrind_commands !g' $config_file`;
-         `sed -i 's!$replacement:host !$replacement:host $valgrind_commands !g' $config_file`;
-         `sed -i 's!$replacement:acc !$replacement:acc $valgrind_commands !g' $config_file`;
-         `sed -i 's!$replacement !$replacement $valgrind_commands !g' $config_file`;
-         `sed -i 's!$replacement:gpu,host !$replacement:gpu,host $valgrind_commands !g' $config_file`;
-      }
+      my $valgrind_dir = $cwd . "/valgrind_reports";
+      safe_Mkdir($valgrind_dir);
+      $insert_command = "/rdrive/ref/valgrind/v3.16.0/efi2/bin/valgrind --leak-check=full --show-leak-kinds=all --trace-children=yes --log-file=$cwd/valgrind_reports/log.%%p";
     }
 
     return PASS;
@@ -190,14 +181,17 @@ sub do_run
       my $python = "python3";
       my $timeset = "";
       my $matrix = "";
+      my $jobset = "-j 8";
 
       if (defined $ENV{'CURRENT_GPU_DEVICE'}) {
         my $current_gpu = $ENV{'CURRENT_GPU_DEVICE'};
         if ($current_gpu =~ m/ats/) {
           $python = "/usr/bin/python3";
           $matrix = "-Dmatrix=1";
+          $jobset = "";
         } elsif ($current_gpu =~ m/pvc/) {
           $timeset = "--timeout 1200";
+          $jobset = "";
         }
       }
 
@@ -207,7 +201,7 @@ sub do_run
 
       if ($is_suite) {
         set_tool_path();
-        execute("$python $lit -a $matrix . $timeset > $run_all_lf 2>&1");
+        execute("$python $lit -a $matrix $jobset . $timeset > $run_all_lf 2>&1");
       } else {
         set_tool_path();
         execute("$python $lit -a $matrix $path $timeset");
@@ -407,7 +401,35 @@ sub run_cmake
     $lit_extra_env = join_extra_env($lit_extra_env,"TC_WRAPPER_PATH");
 
     if ( defined $ENV{PIN_CMD} ) {
-        $lit_extra_env = join(',',$lit_extra_env,$ENV{PIN_CMD});
+        my $pin_cmd = $ENV{PIN_CMD};
+
+        if ($pin_cmd =~ /=/) {
+          $lit_extra_env = join(',',$lit_extra_env,$ENV{PIN_CMD});
+        } elsif ($insert_command eq "") {
+          $insert_command = $pin_cmd;
+        }
+    }
+
+    if ($insert_command ne "") {
+        my $config_file = "$optset_work_dir/SYCL/lit.cfg.py";
+        if (! -f $config_file) {
+          return COMPFAIL, "File SYCL/lit.cfg.py doesn't exist";
+        }
+
+        my $config_file_original = "$config_file.ori";
+        # If using tc -rerun, it may repeat inserting so we need to keep the original file and insert on it
+        if (! -f $config_file_original) {
+          copy($config_file, $config_file_original);
+        }
+
+        open my $in, "<", $config_file_original || die "Cannot open file lit.cfg.py.ori: $!";
+        open my $out, ">", $config_file || die "Cannot open file lit.cfg.py: $!";
+        while (<$in>) {
+          s/env\s+SYCL_DEVICE_FILTER=(\S+)/env SYCL_DEVICE_FILTER=$1 $insert_command /g;
+          print $out $_;
+        }
+        close $in;
+        close $out;
     }
 
     execute( "cmake -G Ninja ../ -DTEST_SUITE_SUBDIRS=$subdir -DTEST_SUITE_LIT=$lit"
