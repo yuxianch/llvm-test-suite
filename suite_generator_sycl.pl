@@ -147,6 +147,8 @@ sub gen_suite
         my @pre_xml = ();
         my $pre_xml_name = "";
 
+        my ($group) = split("_", lc($testname));
+
         if ( @strings != 0 ) {
             @pre_xml = grep /testName="$testname"/, @strings;
         }
@@ -155,11 +157,11 @@ sub gen_suite
             my $pre_xml_file = basename($pre_xml_name);
             if (-f "${testbase}/$pre_xml_name" and ! -f "$pre_xml_file") {
                 copy("${testbase}/$pre_xml_name", "./$config_folder/") or die "copy failed: $!";
-                push @{ $xml->{tests}{test}}, { configFile => "$pre_xml_name", testName => $testname};
+                push @{ $xml->{tests}{test}}, { configFile => "$pre_xml_name", testName => $testname, splitGroup => $group};
                 next;
             }
         }
-        push @{ $xml->{tests}{test}}, { configFile => "$config_folder/TEMPLATE_$suite_name.xml", testName => $testname};
+        push @{ $xml->{tests}{test}}, { configFile => "$config_folder/TEMPLATE_$suite_name.xml", testName => $testname, splitGroup => $group};
     }
 
     return XMLout( $xml, xmldecl => '<?xml version="1.0" encoding="UTF-8" ?>', RootName => 'suite');
@@ -266,9 +268,6 @@ print "\n\nFinish the generation of $suite_name Successfully.\n";
 if ( $suite_name eq "llvm_test_suite_sycl" ) {
     my $valgrind_suite_name = "llvm_test_suite_sycl_valgrind";
     copy("$suite_name.xml", "$valgrind_suite_name.xml");
-    `sed -i 's!TEMPLATE_llvm_test_suite_sycl!TEMPLATE_llvm_test_suite_sycl_valgrind!g' $valgrind_suite_name.xml`;
-    copy("$config_folder/TEMPLATE_$suite_name.xml", "$config_folder/TEMPLATE_$valgrind_suite_name.xml");
-    `sed -i 's!llvm_test_suite_sycl!llvm_test_suite_sycl_valgrind!g' $config_folder/TEMPLATE_$valgrind_suite_name.xml`;
     print "\n\nFinish the generation of $valgrind_suite_name Successfully.\n";
 }
 
