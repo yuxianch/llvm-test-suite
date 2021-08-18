@@ -180,6 +180,7 @@ sub do_run
       my $is_suite = is_same(\@current_test_list, \@whole_suite_test);
       my $python = "python3";
       my $timeset = "";
+      # Set matrix to 1 if it's running on ATS or using SPR SDE
       my $matrix = "";
       my $jobset = "-j 8";
 
@@ -190,9 +191,13 @@ sub do_run
           $matrix = "-Dmatrix=1";
           $jobset = "";
         } elsif ($current_gpu =~ m/pvc/) {
-          $timeset = "--timeout 1200";
+          $timeset = "--timeout 1800";
           $jobset = "";
         }
+      }
+
+      if ($current_optset =~ m/_spr$/) {
+          $matrix = "-Dmatrix=1";
       }
 
       if ($current_suite eq 'llvm_test_suite_sycl_valgrind'){
