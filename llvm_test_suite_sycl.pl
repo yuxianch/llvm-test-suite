@@ -8,7 +8,12 @@ my $run_all_lf = "$optset_work_dir/run_all.lf";
 
 my $cwd = cwd();
 
-my @test_name_list = ();
+# @test_to_run_list stores only the test(s) that will be run
+# For example, for "tc -t llvm_test_suite_sycl/aot_cpu,aot_gpu" it will store 2 tests - aot_cpu and aot_gpu
+my @test_to_run_list = ();
+# @suite_test_list stores all the tests in the whole suite(without splitting) or sub-suite(with splitting)
+# For example, for "tc -t llvm_test_suite_sycl~4-1/aot_cpu,aot_gpu" it will store all the tests in sub-suite 4-1
+my @suite_test_list = ();
 my $short_test_name;
 my $test_info;
 my $config_folder = "";
@@ -90,8 +95,7 @@ sub init_test
     my $info_dir = "$optset_work_dir/$config_folder";
     my @info_files = glob("$info_dir/*.info");
 
-    my @in_test_list = get_test_list();
-    my %in_test_hash = map { $_ => 1 } @in_test_list;
+    my %in_test_hash = map { $_ => 1 } @suite_test_list;
     my @outof_test_list = ();
 
     for my $file (@info_files) {
@@ -122,8 +126,11 @@ sub BuildTest
     $build_dir = $cwd . "/build";
     safe_Mkdir($build_dir);
 
-    @test_name_list = get_tests_to_run();
-    if ($current_test eq $test_name_list[0])
+    # CMPLRTST-14094: API get_test_list() requires optset name as an argument
+    @suite_test_list = get_test_list($current_optset);
+
+    @test_to_run_list = get_tests_to_run();
+    if ($current_test eq $test_to_run_list[0])
     {
         init_test();
         chdir_log($build_dir);
@@ -175,8 +182,8 @@ sub do_run
     my $path = "$r->{fullpath}";
 
     if (! -e $run_all_lf) {
-      my @whole_suite_test = sort(get_test_list());
-      my @current_test_list = sort(@test_name_list);
+      my @whole_suite_test = sort(@suite_test_list);
+      my @current_test_list = sort(@test_to_run_list);
       my $is_suite = is_same(\@current_test_list, \@whole_suite_test);
       my $python = "python3";
       my $timeset = "";
@@ -564,7 +571,7 @@ sub append2file
 }
 
 sub CleanupTest {
-  if ($current_test eq $test_name_list[-1]) {
+  if ($current_test eq $test_to_run_list[-1]) {
       rename($run_all_lf, "$run_all_lf.last");
       rename($cmake_err, "$cmake_err.last");
   }
