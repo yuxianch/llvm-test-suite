@@ -77,3 +77,6 @@ SYCL/Basic/stream @againull
 
 # tc files
 *.xml @yuxianch @yanfeng3721
+
+#BFloat16 conversion
+SYCL/BFloat16 @AlexeySotkin @MrSidims
