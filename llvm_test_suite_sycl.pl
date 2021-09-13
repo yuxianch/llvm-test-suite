@@ -58,7 +58,7 @@ sub init_test
     #Remove suffix of suite names if it has
     $suite_feature =~ s/~.*$//;
     $config_folder = 'config_sycl';
-    if ($suite_feature ne 'sycl' and $suite_feature ne 'sycl_valgrind')
+    if ($suite_feature !~ /^sycl/)
     {
         $config_folder = $config_folder . '_' . $suite_feature;
         $subdir = uc $suite_feature;
